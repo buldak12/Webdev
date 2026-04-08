@@ -1,0 +1,148 @@
+<?php
+
+namespace App\Controller\Admin;
+
+use App\Entity\PromoCode;
+use App\Repository\PromoCodeRepository;
+use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Annotation\Route;
+
+#[Route('/admin')]
+class PromoController extends AbstractController
+{
+    #[Route('/promos', name: 'admin_promos')]
+    public function index(PromoCodeRepository $promoCodeRepository, Request $request): Response
+    {
+        $filter = $request->query->get('filter');
+        
+        if ($filter === 'active') {
+            $promos = $promoCodeRepository->findActive();
+        } elseif ($filter === 'expired') {
+            $promos = $promoCodeRepository->findExpired();
+        } else {
+            $promos = $promoCodeRepository->findBy([], ['createdAt' => 'DESC']);
+        }
+
+        return $this->render('admin/promos/index.html.twig', [
+            'promos' => $promos,
+            'current_filter' => $filter,
+            'types' => PromoCode::TYPES,
+        ]);
+    }
+
+    #[Route('/promos/new', name: 'admin_promos_new', methods: ['GET', 'POST'])]
+    public function new(Request $request, EntityManagerInterface $em): Response
+    {
+        if ($request->isMethod('POST')) {
+            $promo = new PromoCode();
+            $promo->setCode($request->request->get('code'));
+            $promo->setDescription($request->request->get('description'));
+            $promo->setType($request->request->get('type'));
+            $promo->setValue($request->request->get('value'));
+            
+            if ($minOrder = $request->request->get('minimum_order_amount')) {
+                $promo->setMinimumOrderAmount($minOrder);
+            }
+            if ($maxDiscount = $request->request->get('maximum_discount')) {
+                $promo->setMaximumDiscount($maxDiscount);
+            }
+            if ($usageLimit = $request->request->get('usage_limit')) {
+                $promo->setUsageLimit((int) $usageLimit);
+            }
+            if ($perUserLimit = $request->request->get('usage_limit_per_user')) {
+                $promo->setUsageLimitPerUser((int) $perUserLimit);
+            }
+            if ($startsAt = $request->request->get('starts_at')) {
+                $promo->setStartsAt(new \DateTime($startsAt));
+            }
+            if ($expiresAt = $request->request->get('expires_at')) {
+                $promo->setExpiresAt(new \DateTime($expiresAt));
+            }
+            
+            $promo->setIsActive($request->request->getBoolean('is_active', true));
+
+            $em->persist($promo);
+            $em->flush();
+
+            $this->addFlash('success', 'Promo code created successfully');
+            return $this->redirectToRoute('admin_promos');
+        }
+
+        return $this->render('admin/promos/form.html.twig', [
+            'promo' => null,
+            'types' => PromoCode::TYPES,
+        ]);
+    }
+
+    #[Route('/promos/{id}/edit', name: 'admin_promos_edit', methods: ['GET', 'POST'])]
+    public function edit(int $id, Request $request, PromoCodeRepository $promoCodeRepository, EntityManagerInterface $em): Response
+    {
+        $promo = $promoCodeRepository->find($id);
+        if (!$promo) {
+            throw $this->createNotFoundException('Promo code not found');
+        }
+
+        if ($request->isMethod('POST')) {
+            $promo->setDescription($request->request->get('description'));
+            $promo->setType($request->request->get('type'));
+            $promo->setValue($request->request->get('value'));
+            
+            $promo->setMinimumOrderAmount($request->request->get('minimum_order_amount') ?: null);
+            $promo->setMaximumDiscount($request->request->get('maximum_discount') ?: null);
+            $promo->setUsageLimit($request->request->get('usage_limit') ? (int) $request->request->get('usage_limit') : null);
+            $promo->setUsageLimitPerUser($request->request->get('usage_limit_per_user') ? (int) $request->request->get('usage_limit_per_user') : null);
+            
+            if ($startsAt = $request->request->get('starts_at')) {
+                $promo->setStartsAt(new \DateTime($startsAt));
+            } else {
+                $promo->setStartsAt(null);
+            }
+            if ($expiresAt = $request->request->get('expires_at')) {
+                $promo->setExpiresAt(new \DateTime($expiresAt));
+            } else {
+                $promo->setExpiresAt(null);
+            }
+            
+            $promo->setIsActive($request->request->getBoolean('is_active', true));
+
+            $em->flush();
+
+            $this->addFlash('success', 'Promo code updated');
+            return $this->redirectToRoute('admin_promos');
+        }
+
+        return $this->render('admin/promos/form.html.twig', [
+            'promo' => $promo,
+            'types' => PromoCode::TYPES,
+        ]);
+    }
+
+    #[Route('/promos/{id}/toggle', name: 'admin_promos_toggle', methods: ['POST'])]
+    public function toggle(int $id, PromoCodeRepository $promoCodeRepository, EntityManagerInterface $em): Response
+    {
+        $promo = $promoCodeRepository->find($id);
+        if ($promo) {
+            $promo->setIsActive(!$promo->isActive());
+            $em->flush();
+            $this->addFlash('success', $promo->isActive() ? 'Promo code activated' : 'Promo code deactivated');
+        }
+
+        return $this->redirectToRoute('admin_promos');
+    }
+
+    #[Route('/promos/{id}/delete', name: 'admin_promos_delete', methods: ['POST'])]
+    public function delete(int $id, PromoCodeRepository $promoCodeRepository, EntityManagerInterface $em): Response
+    {
+        $promo = $promoCodeRepository->find($id);
+        if ($promo) {
+            $em->remove($promo);
+            $em->flush();
+            $this->addFlash('success', 'Promo code deleted');
+        }
+
+        return $this->redirectToRoute('admin_promos');
+    }
+}

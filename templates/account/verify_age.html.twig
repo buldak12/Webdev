@@ -1,0 +1,54 @@
+{% extends 'customer/base.html.twig' %}
+
+{% block title %}Verify Your Age{% endblock %}
+
+{% block body %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="text-center mb-4">
+                <i class="bi bi-shield-check text-primary" style="font-size: 3rem;"></i>
+                <h1 class="h3 mt-3">Age Verification</h1>
+                <p class="text-muted">We need to verify that you're 21 years or older to purchase vape products.</p>
+            </div>
+            
+            <div class="card">
+                <div class="card-body">
+                    <form method="post" action="{{ path('account_verify_age') }}" enctype="multipart/form-data">
+                        <div class="mb-4">
+                            <label class="form-label fw-medium">Select ID Type</label>
+                            <select name="document_type" class="form-select" required>
+                                <option value="">Choose an ID type...</option>
+                                <option value="drivers_license">Driver's License</option>
+                                <option value="passport">Passport</option>
+                                <option value="national_id">Philippine National ID</option>
+                                <option value="postal_id">Postal ID</option>
+                                <option value="voters_id">Voter's ID</option>
+                            </select>
+                        </div>
+                        
+                        <div class="alert alert-info" style="font-size: 0.8125rem;">
+                            <i class="bi bi-info-circle me-2"></i>
+                            <strong>Demo Mode:</strong> For this demo, verification is instant. In production, you would upload your ID documents for manual review.
+                        </div>
+                        
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="bi bi-shield-check me-2"></i>Verify My Age
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="mt-4 text-center" style="font-size: 0.8125rem;">
+                <p class="text-muted mb-2">
+                    <i class="bi bi-lock me-1"></i>
+                    Your documents are encrypted and stored securely
+                </p>
+                <a href="{{ path('account_index') }}" class="text-decoration-none">Back to Account</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

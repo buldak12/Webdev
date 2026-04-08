@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify Your Email</title>
+</head>
+<body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+        <h1 style="color: white; margin: 0; font-size: 28px;">VapeShop PH</h1>
+    </div>
+    
+    <div style="background: #ffffff; padding: 40px 30px; border: 1px solid #e0e0e0; border-top: none;">
+        <h2 style="color: #333; margin-top: 0;">Verify Your Email Address</h2>
+        
+        <p>Hi {{ user.firstName }},</p>
+        
+        <p>Thank you for creating an account with VapeShop PH! To complete your registration and start shopping, please verify your email address by clicking the button below:</p>
+        
+        <div style="text-align: center; margin: 30px 0;">
+            <a href="{{ verificationUrl }}" 
+               style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; padding: 15px 40px; border-radius: 5px; font-weight: bold; font-size: 16px;">
+                Verify Email Address
+            </a>
+        </div>
+        
+        <p style="color: #666; font-size: 14px;">Or copy and paste this link in your browser:</p>
+        <p style="background: #f5f5f5; padding: 10px; border-radius: 5px; word-break: break-all; font-size: 13px;">
+            {{ verificationUrl }}
+        </p>
+        
+        <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+        
+        <p style="color: #999; font-size: 13px; margin-bottom: 0;">
+            If you didn't create an account with VapeShop PH, you can safely ignore this email.
+        </p>
+    </div>
+    
+    <div style="text-align: center; padding: 20px; color: #999; font-size: 12px;">
+        <p style="margin: 0;">&copy; {{ "now"|date("Y") }} VapeShop PH. All rights reserved.</p>
+        <p style="margin: 5px 0 0;">This is an automated email, please do not reply.</p>
+    </div>
+</body>
+</html>

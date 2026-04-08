@@ -1,0 +1,171 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}{{ promo ? 'Edit' : 'New' }} Promo Code{% endblock %}
+{% block breadcrumb %}Marketing / Promo Codes / {{ promo ? 'Edit' : 'New' }}{% endblock %}
+
+{% block body %}
+<div class="page-header d-flex justify-content-between align-items-center">
+    <h1>{{ promo ? 'Edit Promo Code' : 'New Promo Code' }}</h1>
+    <a href="{{ path('admin_promos') }}" class="btn btn-outline-secondary btn-icon" title="Back to promo list" aria-label="Back to promo list">
+        <i class="bi bi-arrow-left" aria-hidden="true"></i>
+        <span class="visually-hidden">Back to List</span>
+    </a>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <form method="post">
+            <div class="card mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Promo Code Details</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Code</label>
+                                <input type="text" name="code" class="form-control text-uppercase" 
+                                       value="{{ promo ? promo.code : '' }}" 
+                                       {{ promo ? 'readonly' : 'required' }}
+                                       placeholder="e.g., SUMMER20">
+                                {% if promo %}
+                                    <small class="text-muted">Code cannot be changed after creation</small>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Type</label>
+                                <select name="type" class="form-select" required>
+                                    {% for code, label in types %}
+                                        <option value="{{ code }}" {{ promo and promo.type == code ? 'selected' : '' }}>{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <input type="text" name="description" class="form-control" 
+                               value="{{ promo ? promo.description : '' }}"
+                               placeholder="e.g., Summer sale 20% off">
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Value</label>
+                                <input type="number" name="value" class="form-control" step="0.01" 
+                                       value="{{ promo ? promo.value : '' }}" required
+                                       placeholder="20 for 20% or 100 for ₱100">
+                                <small class="text-muted">For percentage, enter 20 for 20%</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Minimum Order Amount</label>
+                                <input type="number" name="minimum_order_amount" class="form-control" step="0.01" 
+                                       value="{{ promo ? promo.minimumOrderAmount : '' }}"
+                                       placeholder="Optional">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Maximum Discount</label>
+                                <input type="number" name="maximum_discount" class="form-control" step="0.01" 
+                                       value="{{ promo ? promo.maximumDiscount : '' }}"
+                                       placeholder="Optional cap">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Usage Limits</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Total Usage Limit</label>
+                                <input type="number" name="usage_limit" class="form-control" 
+                                       value="{{ promo ? promo.usageLimit : '' }}"
+                                       placeholder="Leave empty for unlimited">
+                                {% if promo %}
+                                    <small class="text-muted">Used {{ promo.usageCount }} times</small>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Usage Limit Per Customer</label>
+                                <input type="number" name="usage_limit_per_user" class="form-control" 
+                                       value="{{ promo ? promo.usageLimitPerUser : '' }}"
+                                       placeholder="Leave empty for unlimited">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Validity Period</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Starts At</label>
+                                <input type="datetime-local" name="starts_at" class="form-control" 
+                                       value="{{ promo and promo.startsAt ? promo.startsAt|date('Y-m-d\\TH:i') : '' }}">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Expires At</label>
+                                <input type="datetime-local" name="expires_at" class="form-control" 
+                                       value="{{ promo and promo.expiresAt ? promo.expiresAt|date('Y-m-d\\TH:i') : '' }}">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-check">
+                        <input type="checkbox" name="is_active" value="1" class="form-check-input" id="isActive"
+                               {{ (not promo) or promo.isActive ? 'checked' : '' }}>
+                        <label class="form-check-label" for="isActive">Active</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary btn-icon" title="{{ promo ? 'Update promo code' : 'Create promo code' }}" aria-label="{{ promo ? 'Update promo code' : 'Create promo code' }}">
+                    <i class="bi bi-check-lg" aria-hidden="true"></i>
+                    <span class="visually-hidden">{{ promo ? 'Update' : 'Create' }} Promo Code</span>
+                </button>
+                <a href="{{ path('admin_promos') }}" class="btn btn-outline-secondary btn-icon" title="Cancel" aria-label="Cancel">
+                    <i class="bi bi-x-lg" aria-hidden="true"></i>
+                    <span class="visually-hidden">Cancel</span>
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Tips</h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled mb-0" style="font-size: 0.875rem; color: #71717a;">
+                    <li class="mb-2">Use memorable codes like SUMMER20, WELCOME10</li>
+                    <li class="mb-2">Percentage discounts: Enter 20 for 20% off</li>
+                    <li class="mb-2">Fixed amount: Enter 100 for ₱100 off</li>
+                    <li class="mb-2">Set a maximum discount to cap percentage discounts</li>
+                    <li>Leave dates empty for always-valid codes</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

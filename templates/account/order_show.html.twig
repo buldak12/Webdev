@@ -1,0 +1,171 @@
+{% extends 'customer/base.html.twig' %}
+
+{% block title %}Order #{{ order.orderNumber }}{% endblock %}
+
+{% block body %}
+<div class="container py-4">
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb" style="font-size: 0.8125rem;">
+            <li class="breadcrumb-item"><a href="{{ path('account_index') }}">Account</a></li>
+            <li class="breadcrumb-item"><a href="{{ path('account_orders') }}">Orders</a></li>
+            <li class="breadcrumb-item active">#{{ order.orderNumber }}</li>
+        </ol>
+    </nav>
+    
+    {% set statusClass = {
+        'pending': 'warning',
+        'awaiting_verification': 'warning',
+        'awaiting_payment': 'secondary',
+        'paid': 'primary',
+        'processing': 'info',
+        'ready_to_ship': 'primary',
+        'shipped': 'dark',
+        'delivered': 'success',
+        'cancelled': 'danger',
+        'refunded': 'secondary'
+    } %}
+    
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h4 mb-1">Order #{{ order.orderNumber }}</h1>
+            <small class="text-muted">Placed on {{ order.createdAt|date('F j, Y \\a\\t g:i A') }}</small>
+        </div>
+        <span class="badge bg-{{ statusClass[order.status] ?? 'secondary' }} fs-6">{{ order.statusLabel }}</span>
+    </div>
+    
+    <div class="row">
+        <div class="col-lg-8">
+            <!-- Order Items -->
+            <div class="card mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Order Items</h5>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table mb-0">
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th class="text-center">Qty</th>
+                                <th class="text-end">Price</th>
+                                <th class="text-end">Subtotal</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in order.items %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ item.productName }}</strong>
+                                        {% if item.variantName %}
+                                            <br><small class="text-muted">{{ item.variantName }}</small>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">{{ item.quantity }}</td>
+                                    <td class="text-end">₱{{ item.unitPrice|number_format(2) }}</td>
+                                    <td class="text-end">₱{{ item.subtotal|number_format(2) }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot class="border-top">
+                            <tr>
+                                <td colspan="3" class="text-end">Subtotal</td>
+                                <td class="text-end">₱{{ order.subtotal|number_format(2) }}</td>
+                            </tr>
+                            {% if order.discount > 0 %}
+                                <tr class="text-success">
+                                    <td colspan="3" class="text-end">Discount</td>
+                                    <td class="text-end">-₱{{ order.discount|number_format(2) }}</td>
+                                </tr>
+                            {% endif %}
+                            <tr>
+                                <td colspan="3" class="text-end">Shipping</td>
+                                <td class="text-end">
+                                    {% if order.shippingCost == '0.00' %}FREE{% else %}₱{{ order.shippingCost|number_format(2) }}{% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td colspan="3" class="text-end">Tax (12% VAT)</td>
+                                <td class="text-end">₱{{ order.tax|number_format(2) }}</td>
+                            </tr>
+                            <tr>
+                                <td colspan="3" class="text-end"><strong>Total</strong></td>
+                                <td class="text-end"><strong class="h5 mb-0">₱{{ order.total|number_format(2) }}</strong></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Shipping Info -->
+            {% if order.shipment %}
+                <div class="card mb-4">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0">Shipping Information</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if order.shipment.trackingNumber %}
+                            <div class="mb-3">
+                                <strong>Tracking Number:</strong>
+                                <span class="font-monospace">{{ order.shipment.trackingNumber }}</span>
+                                {% if order.shipment.courier %}
+                                    <span class="badge bg-secondary ms-2">{{ order.shipment.courier }}</span>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+                        
+                        {% if order.shipment.estimatedDelivery %}
+                            <div>
+                                <strong>Estimated Delivery:</strong>
+                                {{ order.shipment.estimatedDelivery|date('F j, Y') }}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+        
+        <div class="col-lg-4">
+            <!-- Shipping Address -->
+            <div class="card mb-4">
+                <div class="card-header bg-white">
+                    <h6 class="mb-0">Shipping Address</h6>
+                </div>
+                <div class="card-body">
+                    <strong>{{ order.shippingAddress.fullName }}</strong><br>
+                    {{ order.shippingAddress.phone }}<br>
+                    {{ order.shippingAddress.formattedAddress }}
+                </div>
+            </div>
+            
+            <!-- Payment Info -->
+            <div class="card mb-4">
+                <div class="card-header bg-white">
+                    <h6 class="mb-0">Payment</h6>
+                </div>
+                <div class="card-body">
+                    {% set payment = order.successfulPayment ?? order.payments|first %}
+                    {% if payment %}
+                        <p class="mb-1"><strong>{{ payment.gatewayLabel }}</strong></p>
+                        <span class="badge bg-{{ payment.status == 'completed' ? 'success' : 'secondary' }}">{{ payment.status|capitalize }}</span>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Loyalty Points -->
+            {% if order.loyaltyPointsEarned > 0 %}
+                <div class="card bg-light">
+                    <div class="card-body text-center">
+                        <i class="bi bi-star-fill text-warning"></i>
+                        <p class="mb-0"><strong>{{ order.loyaltyPointsEarned }}</strong> points earned</p>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="mt-3">
+        <a href="{{ path('account_orders') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Back to Orders
+        </a>
+    </div>
+</div>
+{% endblock %}

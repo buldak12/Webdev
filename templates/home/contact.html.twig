@@ -1,0 +1,326 @@
+{% extends 'customer/base.html.twig' %}
+
+{% block title %}Contact Us - VapeShop{% endblock %}
+
+{% block body %}
+{# ============================================
+   HERO SECTION
+   ============================================ #}
+<section class="contact-hero py-5">
+    <div class="container py-4">
+        <div class="row align-items-center">
+            <div class="col-lg-6">
+                <nav aria-label="breadcrumb" class="mb-3">
+                    <ol class="breadcrumb small">
+                        <li class="breadcrumb-item"><a href="{{ path('app_home') }}" class="text-white-50">Home</a></li>
+                        <li class="breadcrumb-item active text-white" aria-current="page">Contact</li>
+                    </ol>
+                </nav>
+                <h1 class="display-5 fw-bold text-white mb-3">Get in Touch</h1>
+                <p class="lead text-white-50">
+                    Have questions? We'd love to hear from you. Send us a message and we'll respond as soon as possible.
+                </p>
+            </div>
+            <div class="col-lg-6 text-center d-none d-lg-block">
+                <i class="bi bi-envelope-paper text-white" style="font-size: 8rem; opacity: 0.15;"></i>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="py-5">
+    <div class="container">
+        <div class="row g-5">
+            {# ============================================
+               CONTACT INFO
+               ============================================ #}
+            <div class="col-lg-5">
+                <h2 class="h4 fw-bold mb-4">Contact Information</h2>
+                
+                <div class="contact-info-item d-flex mb-4">
+                    <div class="contact-icon me-3">
+                        <i class="bi bi-geo-alt"></i>
+                    </div>
+                    <div>
+                        <strong class="d-block mb-1">Address</strong>
+                        <span class="text-muted">
+                            123 Vape Street, Makati City<br>
+                            Metro Manila, Philippines 1200
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="contact-info-item d-flex mb-4">
+                    <div class="contact-icon me-3">
+                        <i class="bi bi-envelope"></i>
+                    </div>
+                    <div>
+                        <strong class="d-block mb-1">Email</strong>
+                        <a href="mailto:support@vapeshop.ph" class="text-muted text-decoration-none">
+                            support@vapeshop.ph
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="contact-info-item d-flex mb-4">
+                    <div class="contact-icon me-3">
+                        <i class="bi bi-telephone"></i>
+                    </div>
+                    <div>
+                        <strong class="d-block mb-1">Phone</strong>
+                        <a href="tel:+639171234567" class="text-muted text-decoration-none">
+                            +63 917 123 4567
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="contact-info-item d-flex mb-4">
+                    <div class="contact-icon me-3">
+                        <i class="bi bi-clock"></i>
+                    </div>
+                    <div>
+                        <strong class="d-block mb-1">Business Hours</strong>
+                        <span class="text-muted">
+                            Mon - Fri: 9:00 AM - 6:00 PM<br>
+                            Sat: 10:00 AM - 4:00 PM<br>
+                            Sun: Closed
+                        </span>
+                    </div>
+                </div>
+
+                <hr class="my-4">
+
+                <h5 class="fw-semibold mb-3">Follow Us</h5>
+                <div class="d-flex gap-2">
+                    <a href="#" class="social-btn" title="Facebook">
+                        <i class="bi bi-facebook"></i>
+                    </a>
+                    <a href="#" class="social-btn" title="Instagram">
+                        <i class="bi bi-instagram"></i>
+                    </a>
+                    <a href="#" class="social-btn" title="Twitter">
+                        <i class="bi bi-twitter-x"></i>
+                    </a>
+                    <a href="#" class="social-btn" title="TikTok">
+                        <i class="bi bi-tiktok"></i>
+                    </a>
+                </div>
+            </div>
+
+            {# ============================================
+               CONTACT FORM
+               ============================================ #}
+            <div class="col-lg-7">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body p-4 p-lg-5">
+                        {% if submitted %}
+                            <div class="text-center py-5">
+                                <div class="success-icon mb-4">
+                                    <i class="bi bi-check-circle"></i>
+                                </div>
+                                <h3 class="h4 fw-bold mb-3">Message Sent!</h3>
+                                <p class="text-muted mb-4">
+                                    Thank you for reaching out. We've received your message and will get back to you within 24 hours.
+                                </p>
+                                <a href="{{ path('page_contact') }}" class="btn btn-outline-dark">
+                                    Send Another Message
+                                </a>
+                            </div>
+                        {% else %}
+                            <h3 class="h4 fw-bold mb-4">Send us a Message</h3>
+                            
+                            {# 
+                               Using FormSubmit.co - a free form backend service
+                               Replace "your-email@example.com" with actual email or configure formspree
+                            #}
+                            <form action="https://formsubmit.co/support@vapeshop.ph" method="POST">
+                                {# FormSubmit configuration #}
+                                <input type="hidden" name="_subject" value="New Contact Form Submission - VapeShop">
+                                <input type="hidden" name="_next" value="{{ url('page_contact', {submitted: 1}) }}">
+                                <input type="hidden" name="_captcha" value="false">
+                                <input type="text" name="_honey" style="display:none">
+
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label for="name" class="form-label">Full Name <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control" id="name" name="name" required>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="email" class="form-label">Email Address <span class="text-danger">*</span></label>
+                                        <input type="email" class="form-control" id="email" name="email" required>
+                                    </div>
+                                    <div class="col-12">
+                                        <label for="phone" class="form-label">Phone Number</label>
+                                        <input type="tel" class="form-control" id="phone" name="phone" placeholder="+63">
+                                    </div>
+                                    <div class="col-12">
+                                        <label for="subject" class="form-label">Subject <span class="text-danger">*</span></label>
+                                        <select class="form-select" id="subject" name="subject" required>
+                                            <option value="" selected disabled>Select a topic...</option>
+                                            <option value="Order Inquiry">Order Inquiry</option>
+                                            <option value="Product Question">Product Question</option>
+                                            <option value="Shipping & Delivery">Shipping & Delivery</option>
+                                            <option value="Returns & Refunds">Returns & Refunds</option>
+                                            <option value="Age Verification">Age Verification</option>
+                                            <option value="Partnership">Partnership Inquiry</option>
+                                            <option value="Other">Other</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-12">
+                                        <label for="message" class="form-label">Message <span class="text-danger">*</span></label>
+                                        <textarea class="form-control" id="message" name="message" rows="5" required 
+                                                  placeholder="How can we help you?"></textarea>
+                                    </div>
+                                    <div class="col-12">
+                                        <button type="submit" class="btn btn-dark btn-lg w-100">
+                                            <i class="bi bi-send me-2"></i>Send Message
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+
+                            <p class="text-muted small mt-4 mb-0 text-center">
+                                <i class="bi bi-shield-lock me-1"></i>
+                                Your information is secure and will never be shared with third parties.
+                            </p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+{# ============================================
+   FAQ SECTION
+   ============================================ #}
+<section class="py-5 bg-light">
+    <div class="container">
+        <div class="text-center mb-5">
+            <h2 class="h3 fw-bold">Frequently Asked Questions</h2>
+            <p class="text-muted">Quick answers to common questions</p>
+        </div>
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="accordion" id="faqAccordion">
+                    <div class="accordion-item border-0 mb-3 shadow-sm">
+                        <h3 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+                                How long does shipping take?
+                            </button>
+                        </h3>
+                        <div id="faq1" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body text-muted">
+                                Metro Manila orders are typically delivered within 1-2 business days. 
+                                Provincial deliveries take 3-5 business days depending on your location. 
+                                We offer same-day delivery for orders placed before 12 PM within Metro Manila.
+                            </div>
+                        </div>
+                    </div>
+                    <div class="accordion-item border-0 mb-3 shadow-sm">
+                        <h3 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
+                                Are your products authentic?
+                            </button>
+                        </h3>
+                        <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body text-muted">
+                                Yes, 100%. We source all products directly from authorized distributors and manufacturers. 
+                                Every item comes with authentication codes where applicable. We have a strict no-counterfeits policy.
+                            </div>
+                        </div>
+                    </div>
+                    <div class="accordion-item border-0 mb-3 shadow-sm">
+                        <h3 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
+                                What is your return policy?
+                            </button>
+                        </h3>
+                        <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body text-muted">
+                                We accept returns within 7 days of delivery for unused, unopened items in original packaging. 
+                                Defective products can be returned within 30 days. Contact our support team to initiate a return.
+                            </div>
+                        </div>
+                    </div>
+                    <div class="accordion-item border-0 shadow-sm">
+                        <h3 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq4">
+                                Why do I need to verify my age?
+                            </button>
+                        </h3>
+                        <div id="faq4" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body text-muted">
+                                Philippine law requires vape products to be sold only to individuals 21 years and older. 
+                                Age verification helps us comply with these regulations and ensures responsible retailing. 
+                                The process is quick and your documents are handled securely.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<style>
+.contact-hero {
+    background: linear-gradient(135deg, #18181b 0%, #27272a 50%, #3f3f46 100%);
+}
+
+.contact-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: #f4f4f5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    color: #18181b;
+    flex-shrink: 0;
+}
+
+.social-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: #f4f4f5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #18181b;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+.social-btn:hover {
+    background: #18181b;
+    color: #fff;
+}
+
+.success-icon {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
+    color: #fff;
+}
+
+.accordion-button {
+    font-weight: 500;
+}
+.accordion-button:not(.collapsed) {
+    background: #f4f4f5;
+    color: #18181b;
+    box-shadow: none;
+}
+.accordion-button:focus {
+    box-shadow: none;
+    border-color: transparent;
+}
+</style>
+{% endblock %}

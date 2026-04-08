@@ -1,0 +1,140 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}Orders{% endblock %}
+{% block breadcrumb %}Sales / Orders{% endblock %}
+
+{% block body %}
+<div class="page-header d-flex justify-content-between align-items-center">
+    <h1>Orders Management</h1>
+    <div class="d-flex gap-2">
+        <button class="btn btn-outline-secondary btn-icon" title="Export orders" aria-label="Export orders">
+            <i class="bi bi-download" aria-hidden="true"></i>
+            <span class="visually-hidden">Export</span>
+        </button>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-4">
+                <div class="input-group">
+                    <span class="input-group-text">Search</span>
+                    <input type="text" class="form-control" name="q" placeholder="Search order ID, customer...">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <select class="form-select" name="status" onchange="this.form.submit()">
+                    <option value="">All Status</option>
+                    {% for key, label in statuses %}
+                        <option value="{{ key }}" {{ current_status == key ? 'selected' : '' }}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select class="form-select" name="payment">
+                    <option value="">All Payment</option>
+                    <option value="gcash">GCash</option>
+                    <option value="maya">Maya</option>
+                    <option value="credit_card">Credit Card</option>
+                    <option value="cod">Cash on Delivery</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <input type="date" class="form-control" name="date" placeholder="Date">
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Orders Table -->
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Order ID</th>
+                        <th>Customer</th>
+                        <th>Items</th>
+                        <th>Total</th>
+                        <th>Payment</th>
+                        <th>Region</th>
+                        <th>Status</th>
+                        <th>Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in orders %}
+                    {% set statusClass = {
+                        'pending': 'warning',
+                        'awaiting_verification': 'warning',
+                        'verified': 'info',
+                        'awaiting_payment': 'secondary',
+                        'paid': 'primary',
+                        'processing': 'info',
+                        'ready_to_ship': 'primary',
+                        'shipped': 'purple',
+                        'delivered': 'success',
+                        'cancelled': 'danger',
+                        'refunded': 'secondary',
+                        'payment_failed': 'danger'
+                    } %}
+                    <tr class="{{ order.status in ['pending', 'awaiting_verification'] ? 'table-warning' : (order.status in ['cancelled', 'payment_failed'] ? 'table-danger' : '') }}">
+                        <td>
+                            <a href="{{ path('admin_orders_show', {id: order.id}) }}" class="fw-medium text-decoration-none">
+                                #{{ order.orderNumber ?? ('ORD-' ~ order.id) }}
+                            </a>
+                        </td>
+                        <td>
+                            <div>{{ order.user.firstName }} {{ order.user.lastName }}</div>
+                            <small class="text-muted">{{ order.user.email }}</small>
+                        </td>
+                        <td>{{ order.items|length }} item{{ order.items|length > 1 ? 's' : '' }}</td>
+                        <td>₱{{ order.total|number_format(2) }}</td>
+                        <td>
+                            {% set successfulPayment = order.successfulPayment %}
+                            {% set paymentMethod = successfulPayment ? successfulPayment.gateway : (order.payments|length > 0 ? order.payments|first.gateway : 'n/a') %}
+                            {% set paymentClass = {
+                                'gcash': 'success',
+                                'maya': 'primary',
+                                'credit_card': 'dark',
+                                'cod': 'secondary',
+                                'bank_transfer': 'info'
+                            } %}
+                            <span class="badge bg-{{ paymentClass[paymentMethod] ?? 'secondary' }}">{{ paymentMethod|replace({'_': ' '})|title }}</span>
+                        </td>
+                        <td>{{ order.shippingAddress ? order.shippingAddress.regionLabel : 'N/A' }}</td>
+                        <td>
+                            <span class="badge bg-{{ statusClass[order.status] ?? 'secondary' }}" {% if order.status == 'shipped' %}style="background-color: #6f42c1 !important;"{% endif %}>
+                                {{ statuses[order.status] ?? order.status|replace({'_': ' '})|title }}
+                            </span>
+                        </td>
+                        <td>{{ order.createdAt|date('M j, Y') }}</td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <a href="{{ path('admin_orders_show', {id: order.id}) }}" class="btn btn-sm btn-outline-primary btn-icon" title="View order" aria-label="View order">
+                                    <i class="bi bi-eye" aria-hidden="true"></i>
+                                    <span class="visually-hidden">View</span>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="9" class="text-center py-4 text-muted">No orders found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="card-footer bg-white d-flex justify-content-between align-items-center">
+        <div class="text-muted">
+            Showing {{ orders|length }} order(s)
+        </div>
+    </div>
+</div>
+{% endblock %}

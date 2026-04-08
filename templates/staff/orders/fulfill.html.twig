@@ -1,0 +1,258 @@
+{% extends 'staff/base.html.twig' %}
+
+{% block title %}Fulfill Order #{{ order.orderNumber ?? ('ORD-' ~ order.id) }}{% endblock %}
+{% block breadcrumb %}Fulfillment / #{{ order.orderNumber ?? ('ORD-' ~ order.id) }}{% endblock %}
+
+{% block body %}
+{% set payment = order.successfulPayment %}
+{% set shipment = order.shipment %}
+{% set statusClasses = {
+    'paid': 'bg-warning text-dark',
+    'processing': 'bg-info text-dark',
+    'ready_to_ship': 'bg-primary',
+    'shipped': 'bg-success',
+    'delivered': 'bg-success',
+    'cancelled': 'bg-danger',
+    'refunded': 'bg-secondary'
+} %}
+
+<div class="page-header d-flex justify-content-between align-items-center">
+    <div>
+        <h1>Order #{{ order.orderNumber ?? ('ORD-' ~ order.id) }}</h1>
+        <span class="badge {{ statusClasses[order.status] ?? 'bg-secondary' }}">{{ order.statusLabel }}</span>
+        <span class="text-muted ms-2">Placed: {{ order.createdAt ? order.createdAt|date('M j, Y g:i A') : 'N/A' }}</span>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ path('staff_orders') }}" class="btn btn-outline-secondary">Back to Queue</a>
+        <a href="{{ path('staff_orders_ready') }}" class="btn btn-outline-primary">Ready to Ship</a>
+    </div>
+</div>
+
+{% if order.status == 'paid' %}
+<div class="alert alert-warning d-flex justify-content-between align-items-center" role="alert">
+    <div>
+        <i class="bi bi-exclamation-circle me-2"></i>
+        This order is <strong>paid</strong> and waiting to be processed. Click "Start Processing" to begin fulfillment.
+    </div>
+    <form action="{{ path('staff_orders_start_processing', {id: order.id}) }}" method="POST" class="d-inline">
+        <input type="hidden" name="_token" value="{{ csrf_token('process-order-' ~ order.id) }}">
+        <button type="submit" class="btn btn-warning">
+            <i class="bi bi-play-fill me-1"></i> Start Processing
+        </button>
+    </form>
+</div>
+{% elseif order.status == 'processing' %}
+<div class="alert alert-info d-flex justify-content-between align-items-center" role="alert">
+    <div>
+        <i class="bi bi-box-seam me-2"></i>
+        This order is <strong>being processed</strong>. Once all items are picked and packed, mark it as ready to ship.
+    </div>
+    <form action="{{ path('staff_orders_mark_ready', {id: order.id}) }}" method="POST" class="d-inline">
+        <input type="hidden" name="_token" value="{{ csrf_token('ready-order-' ~ order.id) }}">
+        <button type="submit" class="btn btn-primary">
+            <i class="bi bi-check2-circle me-1"></i> Mark Ready to Ship
+        </button>
+    </form>
+</div>
+{% elseif order.status == 'ready_to_ship' %}
+<div class="alert alert-success d-flex justify-content-between align-items-center" role="alert">
+    <div>
+        <i class="bi bi-truck me-2"></i>
+        This order is <strong>ready to ship</strong>. Assign a courier and tracking number to mark it as shipped.
+    </div>
+    <a href="{{ path('staff_orders_ship', {id: order.id}) }}" class="btn btn-success">
+        <i class="bi bi-send me-1"></i> Ship Order
+    </a>
+</div>
+{% endif %}
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card mb-4">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Pick & Pack Checklist</h5>
+                <span class="text-muted" style="font-size: 0.75rem;">{{ order.itemCount }} item{{ order.itemCount == 1 ? '' : 's' }}</span>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Product</th>
+                                <th>SKU</th>
+                                <th>Variant</th>
+                                <th class="text-center">Qty</th>
+                                <th class="text-end">Line Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in order.items %}
+                                <tr>
+                                    <td>
+                                        <div class="fw-medium">{{ item.productName }}</div>
+                                    </td>
+                                    <td><code>{{ item.variantSku ?: 'N/A' }}</code></td>
+                                    <td>{{ item.variantName ?: 'Default' }}</td>
+                                    <td class="text-center"><span class="badge bg-primary">{{ item.quantity }}</span></td>
+                                    <td class="text-end">₱{{ item.total|number_format(2, '.', ',') }}</td>
+                                </tr>
+                            {% else %}
+                                <tr>
+                                    <td colspan="5" class="text-center py-4 text-muted">This order has no item lines.</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Shipment Details</h5>
+            </div>
+            <div class="card-body">
+                {% if shipment %}
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <small class="text-muted d-block">Shipment Status</small>
+                            <span class="badge bg-light text-dark">{{ shipment.statusLabel }}</span>
+                        </div>
+                        <div class="col-md-6">
+                            <small class="text-muted d-block">Courier</small>
+                            {{ shipment.courierLabel ?: 'Unassigned' }}
+                        </div>
+                        <div class="col-md-6">
+                            <small class="text-muted d-block">Tracking Number</small>
+                            {% if shipment.trackingNumber %}
+                                <code>{{ shipment.trackingNumber }}</code>
+                            {% else %}
+                                <span class="text-muted">Not assigned yet</span>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <small class="text-muted d-block">Estimated Delivery</small>
+                            {{ shipment.estimatedDelivery ? shipment.estimatedDelivery|date('M j, Y') : 'N/A' }}
+                        </div>
+                    </div>
+                {% else %}
+                    <p class="text-muted mb-0">No shipment record is attached to this order yet.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Internal Notes</h5>
+            </div>
+            <div class="card-body">
+                {% if order.internalNotes %}
+                    <p class="mb-0">{{ order.internalNotes }}</p>
+                {% else %}
+                    <p class="text-muted mb-0">No internal notes were added to this order.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card mb-4">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Customer</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-2">
+                    <strong>{{ order.user ? order.user.fullName : 'Unknown Customer' }}</strong>
+                </div>
+                <div class="mb-2">
+                    <small class="text-muted">Email:</small><br>
+                    {{ order.user ? order.user.email : 'N/A' }}
+                </div>
+                <div class="mb-2">
+                    <small class="text-muted">Phone:</small><br>
+                    {{ order.user and order.user.phone ? order.user.phone : 'N/A' }}
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Ship To</h5>
+            </div>
+            <div class="card-body">
+                {% if order.shippingAddress %}
+                    <address class="mb-0">
+                        <strong>{{ order.shippingAddress.fullName }}</strong><br>
+                        {{ order.shippingAddress.streetAddress }}<br>
+                        {% if order.shippingAddress.barangay %}{{ order.shippingAddress.barangay }}<br>{% endif %}
+                        {{ order.shippingAddress.city }}, {{ order.shippingAddress.province }} {{ order.shippingAddress.postalCode }}<br>
+                        <abbr title="Phone">P:</abbr> {{ order.shippingAddress.phone }}
+                    </address>
+                    <hr>
+                    <div class="d-flex justify-content-between">
+                        <span>Region:</span>
+                        <strong>{{ order.shippingAddress.regionLabel }}</strong>
+                    </div>
+                {% else %}
+                    <p class="text-muted mb-0">No shipping address available.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Order Summary</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Subtotal ({{ order.itemCount }} item{{ order.itemCount == 1 ? '' : 's' }})</span>
+                    <span>₱{{ order.subtotal|number_format(2, '.', ',') }}</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Shipping</span>
+                    <span>₱{{ order.shippingCost|number_format(2, '.', ',') }}</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Tax</span>
+                    <span>₱{{ order.tax|number_format(2, '.', ',') }}</span>
+                </div>
+                {% if (order.discount|default(0)) > 0 %}
+                    <div class="d-flex justify-content-between mb-2 text-success">
+                        <span>Discount</span>
+                        <span>-₱{{ order.discount|number_format(2, '.', ',') }}</span>
+                    </div>
+                {% endif %}
+                <hr>
+                <div class="d-flex justify-content-between fw-bold fs-5">
+                    <span>Total</span>
+                    <span>₱{{ order.total|number_format(2, '.', ',') }}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Payment</h5>
+            </div>
+            <div class="card-body">
+                {% if payment %}
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Method:</span>
+                        <span class="badge bg-success">{{ payment.gatewayLabel }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Status:</span>
+                        <span class="badge bg-success">{{ payment.statusLabel }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span>Transaction ID:</span>
+                        <code>{{ payment.transactionId ?: 'N/A' }}</code>
+                    </div>
+                {% else %}
+                    <p class="text-muted mb-0">No successful payment record found.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

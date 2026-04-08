@@ -1,0 +1,103 @@
+{% extends 'customer/base.html.twig' %}
+
+{% block title %}Shop All Products{% endblock %}
+
+{% block body %}
+<div class="container py-4">
+    <div class="row">
+        <!-- Sidebar Filters -->
+        <div class="col-lg-3 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="mb-3 fw-semibold">Categories</h6>
+                    <ul class="list-unstyled mb-0">
+                        <li class="mb-2">
+                            <a href="{{ path('shop_index') }}" class="text-decoration-none text-dark fw-medium">
+                                <i class="bi bi-grid me-2"></i>All Products
+                            </a>
+                        </li>
+                        {% for category in categories %}
+                            <li class="mb-2">
+                                <a href="{{ path('shop_category', {slug: category.slug}) }}" class="text-decoration-none text-muted">
+                                    {{ category.name }}
+                                    <span class="badge bg-light text-dark float-end">{{ category.activeProducts|length }}</span>
+                                </a>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="card mt-3">
+                <div class="card-body">
+                    <h6 class="mb-3 fw-semibold">Age Verification</h6>
+                    <div class="alert alert-warning mb-0" style="font-size: 0.8125rem;">
+                        <i class="bi bi-exclamation-triangle me-1"></i>
+                        All vape products require age verification (21+). You'll need to verify your age before checkout.
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Products Grid -->
+        <div class="col-lg-9">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1 class="h4 mb-1">All Products</h1>
+                    <p class="text-muted mb-0" style="font-size: 0.875rem;">{{ total_products }} product(s) found</p>
+                </div>
+                <div class="d-flex gap-2 align-items-center">
+                    <label class="text-muted me-2" style="font-size: 0.8125rem;">Sort by:</label>
+                    <select class="form-select form-select-sm" style="width: auto;" onchange="window.location.href=this.value">
+                        <option value="{{ path('shop_index', {sort: 'name'}) }}" {{ sort == 'name' ? 'selected' : '' }}>Name</option>
+                        <option value="{{ path('shop_index', {sort: 'price_asc'}) }}" {{ sort == 'price_asc' ? 'selected' : '' }}>Price: Low to High</option>
+                        <option value="{{ path('shop_index', {sort: 'price_desc'}) }}" {{ sort == 'price_desc' ? 'selected' : '' }}>Price: High to Low</option>
+                        <option value="{{ path('shop_index', {sort: 'newest'}) }}" {{ sort == 'newest' ? 'selected' : '' }}>Newest</option>
+                    </select>
+                </div>
+            </div>
+            
+            <!-- Products -->
+            {% if products|length > 0 %}
+                <div class="row g-3">
+                    {% for product in products %}
+                        <div class="col-md-6 col-lg-4">
+                            {% include 'shop/_product_card.html.twig' %}
+                        </div>
+                    {% endfor %}
+                </div>
+                
+                <!-- Pagination -->
+                {% if total_pages > 1 %}
+                    <nav class="mt-4">
+                        <ul class="pagination justify-content-center">
+                            <li class="page-item {{ current_page == 1 ? 'disabled' : '' }}">
+                                <a class="page-link" href="{{ path('shop_index', {page: current_page - 1, sort: sort}) }}">
+                                    <i class="bi bi-chevron-left"></i>
+                                </a>
+                            </li>
+                            {% for i in 1..total_pages %}
+                                <li class="page-item {{ current_page == i ? 'active' : '' }}">
+                                    <a class="page-link" href="{{ path('shop_index', {page: i, sort: sort}) }}">{{ i }}</a>
+                                </li>
+                            {% endfor %}
+                            <li class="page-item {{ current_page == total_pages ? 'disabled' : '' }}">
+                                <a class="page-link" href="{{ path('shop_index', {page: current_page + 1, sort: sort}) }}">
+                                    <i class="bi bi-chevron-right"></i>
+                                </a>
+                            </li>
+                        </ul>
+                    </nav>
+                {% endif %}
+            {% else %}
+                <div class="text-center py-5">
+                    <i class="bi bi-box text-muted" style="font-size: 3rem;"></i>
+                    <h5 class="mt-3">No Products Found</h5>
+                    <p class="text-muted">Check back later for new products!</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

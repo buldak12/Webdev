@@ -1,0 +1,35 @@
+{% set cart_items = cart.items|default([]) %}
+
+{% if cart_items|length > 0 %}
+    <div class="mini-cart-items">
+        {% for item in cart_items %}
+            <div class="mini-cart-item">
+                <img src="{{ asset(item.variant.product.mainImage ?? 'assets/images/placeholder.png') }}" alt="{{ item.variant.displayName }}">
+                <div class="flex-grow-1">
+                    <div class="fw-medium" style="font-size: 0.8125rem;">{{ item.variant.product.name }}</div>
+                    <small class="text-muted">{{ item.variant.variantAttributes ?: 'Default' }}</small>
+                    <div class="d-flex justify-content-between align-items-center mt-1">
+                        <span style="font-size: 0.75rem;">{{ item.quantity }} × ₱{{ item.unitPrice|number_format(2) }}</span>
+                        <strong style="font-size: 0.8125rem;">₱{{ item.subtotal|number_format(2) }}</strong>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+    <div class="mini-cart-footer">
+        <div class="d-flex justify-content-between mb-2">
+            <span class="text-muted">Subtotal</span>
+            <strong>₱{{ cart.subtotal|number_format(2) }}</strong>
+        </div>
+        <div class="d-grid gap-2">
+            <a href="{{ path('cart_index') }}" class="btn btn-outline-primary btn-sm">View Cart</a>
+            <a href="{{ path('checkout_index') }}" class="btn btn-primary btn-sm">Checkout</a>
+        </div>
+    </div>
+{% else %}
+    <div class="p-4 text-center">
+        <i class="bi bi-bag text-muted" style="font-size: 2rem;"></i>
+        <p class="text-muted mt-2 mb-3" style="font-size: 0.875rem;">Your cart is empty</p>
+        <a href="{{ path('shop_index') }}" class="btn btn-primary btn-sm">Start Shopping</a>
+    </div>
+{% endif %}

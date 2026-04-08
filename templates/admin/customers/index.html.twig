@@ -1,0 +1,180 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}Customers{% endblock %}
+{% block breadcrumb %}Sales / Customers{% endblock %}
+
+{% block body %}
+{% set verifiedCount = 0 %}
+{% set pendingCount = 0 %}
+{% set rejectedCount = 0 %}
+{% set newThisWeek = 0 %}
+{% set weekAgoTs = date('-7 days')|date('U') %}
+
+{% for customer in customers %}
+    {% if customer.ageVerificationStatus == 'verified' %}
+        {% set verifiedCount = verifiedCount + 1 %}
+    {% elseif customer.ageVerificationStatus == 'pending' %}
+        {% set pendingCount = pendingCount + 1 %}
+    {% elseif customer.ageVerificationStatus == 'rejected' %}
+        {% set rejectedCount = rejectedCount + 1 %}
+    {% endif %}
+
+    {% if customer.createdAt and customer.createdAt|date('U') >= weekAgoTs %}
+        {% set newThisWeek = newThisWeek + 1 %}
+    {% endif %}
+{% endfor %}
+
+<div class="page-header d-flex justify-content-between align-items-center">
+    <h1>Customers Management</h1>
+    <button class="btn btn-outline-secondary btn-icon" title="Export customers" aria-label="Export customers" disabled>
+        <i class="bi bi-download" aria-hidden="true"></i>
+        <span class="visually-hidden">Export</span>
+    </button>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card text-center py-3">
+            <div class="h4 mb-0">{{ customers|length }}</div>
+            <small class="text-muted">Loaded Customers</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center py-3">
+            <div class="h4 mb-0 text-success">{{ verifiedCount }}</div>
+            <small class="text-muted">Verified</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center py-3">
+            <div class="h4 mb-0 text-warning">{{ pendingCount }}</div>
+            <small class="text-muted">Pending Verification</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center py-3">
+            <div class="h4 mb-0 text-info">{{ newThisWeek }}</div>
+            <small class="text-muted">New This Week</small>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-4">
+                <div class="input-group">
+                    <span class="input-group-text">Filter</span>
+                    <select class="form-select" name="status" onchange="this.form.submit()">
+                        <option value="" {{ current_status is empty ? 'selected' : '' }}>All Verification Statuses</option>
+                        <option value="pending" {{ current_status == 'pending' ? 'selected' : '' }}>Pending</option>
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-8 d-flex align-items-center">
+                <small class="text-muted">Showing customers from {{ current_status == 'pending' ? 'pending age verification queue' : 'customer list' }}.</small>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Customer</th>
+                        <th>Phone</th>
+                        <th>Region</th>
+                        <th>Age Verification</th>
+                        <th>Loyalty Points</th>
+                        <th>Orders</th>
+                        <th>Total Spent</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for customer in customers %}
+                        {% set status = customer.ageVerificationStatus %}
+                        {% set rowClass = status == 'pending' ? 'table-warning' : (status == 'rejected' ? 'table-danger' : '') %}
+                        {% set initials = (customer.firstName|slice(0, 1) ~ customer.lastName|slice(0, 1))|upper %}
+                        {% set orderCount = customer.orders|length %}
+                        {% set totalSpent = 0 %}
+                        {% for order in customer.orders %}
+                            {% if order.paid %}
+                                {% set totalSpent = totalSpent + order.total %}
+                            {% endif %}
+                        {% endfor %}
+
+                        <tr class="{{ rowClass }}">
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 36px; height: 36px;">{{ initials }}</div>
+                                    <div>
+                                        <div class="fw-medium">{{ customer.fullName }}</div>
+                                        <small class="text-muted">{{ customer.email }}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>{{ customer.phone ?: 'N/A' }}</td>
+                            <td>
+                                {% if customer.defaultShippingAddress %}
+                                    {{ customer.defaultShippingAddress.regionLabel }}
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if status == 'verified' %}
+                                    <span class="badge bg-success">Verified{{ customer.age ? ' (' ~ customer.age ~ ')' : '' }}</span>
+                                {% elseif status == 'pending' %}
+                                    <span class="badge bg-warning text-dark">Pending</span>
+                                {% else %}
+                                    <span class="badge bg-danger">Rejected</span>
+                                {% endif %}
+                            </td>
+                            <td><span class="badge bg-info">{{ customer.loyaltyPoints }} pts</span></td>
+                            <td>{{ orderCount }}</td>
+                            <td>₱{{ totalSpent|number_format(2) }}</td>
+                            <td>
+                                <div class="d-flex flex-wrap gap-1">
+                                    <a href="{{ path('admin_customers_show', {id: customer.id}) }}" class="btn btn-sm btn-outline-primary btn-icon" title="View customer" aria-label="View customer">
+                                        <i class="bi bi-eye" aria-hidden="true"></i>
+                                        <span class="visually-hidden">View</span>
+                                    </a>
+
+                                    {% if status == 'pending' %}
+                                        <form method="post" action="{{ path('admin_customers_verify', {id: customer.id}) }}">
+                                            <input type="hidden" name="action" value="approve">
+                                            <button type="submit" class="btn btn-sm btn-outline-success btn-icon" title="Approve verification" aria-label="Approve verification">
+                                                <i class="bi bi-check-lg" aria-hidden="true"></i>
+                                                <span class="visually-hidden">Approve</span>
+                                            </button>
+                                        </form>
+                                        <form method="post" action="{{ path('admin_customers_verify', {id: customer.id}) }}">
+                                            <input type="hidden" name="action" value="reject">
+                                            <input type="hidden" name="reason" value="Rejected from customer queue">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger btn-icon" title="Reject verification" aria-label="Reject verification">
+                                                <i class="bi bi-x-lg" aria-hidden="true"></i>
+                                                <span class="visually-hidden">Reject</span>
+                                            </button>
+                                        </form>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="8" class="text-center py-4 text-muted">No customers found.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="card-footer bg-white d-flex justify-content-between align-items-center">
+        <div class="text-muted">Showing {{ customers|length }} customer(s)</div>
+    </div>
+</div>
+{% endblock %}

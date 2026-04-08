@@ -1,0 +1,596 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}Settings{% endblock %}
+{% block breadcrumb %}System / Settings{% endblock %}
+
+{% block body %}
+<div class="page-header">
+    <h1>Store Settings</h1>
+</div>
+
+<div class="row">
+    <div class="col-lg-3">
+        <!-- Settings Navigation -->
+        <div class="card mb-4">
+            <div class="list-group list-group-flush">
+                <a href="#general" class="list-group-item list-group-item-action active" data-bs-toggle="list">
+                    General
+                </a>
+                <a href="#tax" class="list-group-item list-group-item-action" data-bs-toggle="list">
+                    Tax Settings
+                </a>
+                <a href="#shipping" class="list-group-item list-group-item-action" data-bs-toggle="list">
+                    Shipping
+                </a>
+                <a href="#payment" class="list-group-item list-group-item-action" data-bs-toggle="list">
+                    Payment Gateways
+                </a>
+                <a href="#age-verification" class="list-group-item list-group-item-action" data-bs-toggle="list">
+                    Age Verification
+                </a>
+                <a href="#notifications" class="list-group-item list-group-item-action" data-bs-toggle="list">
+                    Notifications
+                </a>
+                <a href="#regional" class="list-group-item list-group-item-action" data-bs-toggle="list">
+                    Regional Rules
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-9">
+        <div class="tab-content">
+            <!-- General Settings -->
+            <div class="tab-pane fade show active" id="general">
+                <div class="card">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0">General Settings</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label">Store Name</label>
+                            <input type="text" class="form-control" value="VapeShop Philippines">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Store Email</label>
+                            <input type="email" class="form-control" value="support@vapeshop.ph">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Store Phone</label>
+                            <input type="text" class="form-control" value="+63 2 1234 5678">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Store Address</label>
+                            <textarea class="form-control" rows="3">123 Rizal Avenue, Makati City, Metro Manila 1226, Philippines</textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Currency</label>
+                            <select class="form-select" style="width: 200px;">
+                                <option selected>₱ PHP - Philippine Peso</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-primary btn-icon" title="Save changes" aria-label="Save changes"><i class="bi bi-check-lg" aria-hidden="true"></i><span class="visually-hidden">Save Changes</span></button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Tax Settings -->
+            <div class="tab-pane fade" id="tax">
+                <div class="card">
+                    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Tax Settings</h5>
+                        <button class="btn btn-sm btn-primary btn-icon" title="Add tax rate" aria-label="Add tax rate"><i class="bi bi-plus-lg" aria-hidden="true"></i><span class="visually-hidden">Add Tax Rate</span></button>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-4">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="taxEnabled" checked>
+                                <label class="form-check-label" for="taxEnabled">
+                                    Enable tax calculation
+                                </label>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="taxDisplay" id="taxInclusive" checked>
+                                <label class="form-check-label" for="taxInclusive">
+                                    Prices are inclusive of tax
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="taxDisplay" id="taxExclusive">
+                                <label class="form-check-label" for="taxExclusive">
+                                    Prices are exclusive of tax (add tax at checkout)
+                                </label>
+                            </div>
+                        </div>
+                        <hr>
+                        <h6 class="mb-3">Tax Rates by Region</h6>
+                        <table class="table table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Region</th>
+                                    <th>Tax Name</th>
+                                    <th>Rate</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Philippines (Default)</td>
+                                    <td>VAT</td>
+                                    <td>12%</td>
+                                    <td><span class="badge bg-success">Active</span></td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary btn-icon" title="Edit" aria-label="Edit"><i class="bi bi-pencil-square" aria-hidden="true"></i><span class="visually-hidden">Edit</span></button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Metro Manila</td>
+                                    <td>Local Tax</td>
+                                    <td>0%</td>
+                                    <td><span class="badge bg-success">Active</span></td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary btn-icon" title="Edit" aria-label="Edit"><i class="bi bi-pencil-square" aria-hidden="true"></i><span class="visually-hidden">Edit</span></button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <div class="alert alert-info">
+                            <strong>Note:</strong> Vape products in the Philippines are subject to 12% VAT. Additional excise taxes may apply based on product type.
+                        </div>
+                        <button class="btn btn-primary btn-icon" title="Save tax settings" aria-label="Save tax settings"><i class="bi bi-check-lg" aria-hidden="true"></i><span class="visually-hidden">Save Tax Settings</span></button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Shipping Settings -->
+            <div class="tab-pane fade" id="shipping">
+                <div class="card">
+                    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Shipping Zones & Rates</h5>
+                        <button class="btn btn-sm btn-primary btn-icon" title="Add shipping zone" aria-label="Add shipping zone"><i class="bi bi-plus-lg" aria-hidden="true"></i><span class="visually-hidden">Add Shipping Zone</span></button>
+                    </div>
+                    <div class="card-body">
+                        <div class="accordion" id="shippingZones">
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#zone1">
+                                        Metro Manila
+                                    </button>
+                                </h2>
+                                <div id="zone1" class="accordion-collapse collapse show" data-bs-parent="#shippingZones">
+                                    <div class="accordion-body">
+                                        <table class="table table-sm">
+                                            <thead>
+                                                <tr>
+                                                    <th>Shipping Method</th>
+                                                    <th>Rate</th>
+                                                    <th>Est. Delivery</th>
+                                                    <th>Status</th>
+                                                    <th></th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td>Standard Delivery</td>
+                                                    <td>₱50.00</td>
+                                                    <td>2-3 days</td>
+                                                    <td><span class="badge bg-success">Active</span></td>
+                                                    <td><button class="btn btn-sm btn-outline-secondary btn-icon" title="Edit" aria-label="Edit"><i class="bi bi-pencil-square" aria-hidden="true"></i><span class="visually-hidden">Edit</span></button></td>
+                                                </tr>
+                                                <tr>
+                                                    <td>Express Delivery</td>
+                                                    <td>₱120.00</td>
+                                                    <td>Same day</td>
+                                                    <td><span class="badge bg-success">Active</span></td>
+                                                    <td><button class="btn btn-sm btn-outline-secondary btn-icon" title="Edit" aria-label="Edit"><i class="bi bi-pencil-square" aria-hidden="true"></i><span class="visually-hidden">Edit</span></button></td>
+                                                </tr>
+                                                <tr>
+                                                    <td>Free Shipping (orders over ₱1000)</td>
+                                                    <td>₱0.00</td>
+                                                    <td>2-3 days</td>
+                                                    <td><span class="badge bg-success">Active</span></td>
+                                                    <td><button class="btn btn-sm btn-outline-secondary btn-icon" title="Edit" aria-label="Edit"><i class="bi bi-pencil-square" aria-hidden="true"></i><span class="visually-hidden">Edit</span></button></td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#zone2">
+                                        Luzon (Outside NCR)
+                                    </button>
+                                </h2>
+                                <div id="zone2" class="accordion-collapse collapse" data-bs-parent="#shippingZones">
+                                    <div class="accordion-body">
+                                        <table class="table table-sm">
+                                            <thead>
+                                                <tr>
+                                                    <th>Shipping Method</th>
+                                                    <th>Rate</th>
+                                                    <th>Est. Delivery</th>
+                                                    <th>Status</th>
+                                                    <th></th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td>Standard Delivery</td>
+                                                    <td>₱80.00</td>
+                                                    <td>3-5 days</td>
+                                                    <td><span class="badge bg-success">Active</span></td>
+                                                    <td><button class="btn btn-sm btn-outline-secondary btn-icon" title="Edit" aria-label="Edit"><i class="bi bi-pencil-square" aria-hidden="true"></i><span class="visually-hidden">Edit</span></button></td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#zone3">
+                                        Visayas
+                                    </button>
+                                </h2>
+                                <div id="zone3" class="accordion-collapse collapse" data-bs-parent="#shippingZones">
+                                    <div class="accordion-body">
+                                        <table class="table table-sm">
+                                            <thead>
+                                                <tr>
+                                                    <th>Shipping Method</th>
+                                                    <th>Rate</th>
+                                                    <th>Est. Delivery</th>
+                                                    <th>Status</th>
+                                                    <th></th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td>Standard Delivery</td>
+                                                    <td>₱120.00</td>
+                                                    <td>5-7 days</td>
+                                                    <td><span class="badge bg-success">Active</span></td>
+                                                    <td><button class="btn btn-sm btn-outline-secondary btn-icon" title="Edit" aria-label="Edit"><i class="bi bi-pencil-square" aria-hidden="true"></i><span class="visually-hidden">Edit</span></button></td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#zone4">
+                                        Mindanao
+                                    </button>
+                                </h2>
+                                <div id="zone4" class="accordion-collapse collapse" data-bs-parent="#shippingZones">
+                                    <div class="accordion-body">
+                                        <table class="table table-sm">
+                                            <thead>
+                                                <tr>
+                                                    <th>Shipping Method</th>
+                                                    <th>Rate</th>
+                                                    <th>Est. Delivery</th>
+                                                    <th>Status</th>
+                                                    <th></th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td>Standard Delivery</td>
+                                                    <td>₱150.00</td>
+                                                    <td>5-7 days</td>
+                                                    <td><span class="badge bg-success">Active</span></td>
+                                                    <td><button class="btn btn-sm btn-outline-secondary btn-icon" title="Edit" aria-label="Edit"><i class="bi bi-pencil-square" aria-hidden="true"></i><span class="visually-hidden">Edit</span></button></td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <button class="btn btn-primary btn-icon" title="Save shipping settings" aria-label="Save shipping settings"><i class="bi bi-check-lg" aria-hidden="true"></i><span class="visually-hidden">Save Shipping Settings</span></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Payment Gateways -->
+            <div class="tab-pane fade" id="payment">
+                <div class="card">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0">Payment Gateways</h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- GCash -->
+                        <div class="border rounded p-3 mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <div class="d-flex align-items-center">
+                                    <div class="bg-primary text-white rounded p-2 me-3" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">G</div>
+                                    <div>
+                                        <h6 class="mb-0">GCash</h6>
+                                        <small class="text-muted">Philippine e-wallet</small>
+                                    </div>
+                                </div>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" checked>
+                                </div>
+                            </div>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Merchant ID</label>
+                                    <input type="text" class="form-control" value="GC_MERCHANT_12345">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">API Key</label>
+                                    <input type="password" class="form-control" value="••••••••••••">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Maya -->
+                        <div class="border rounded p-3 mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <div class="d-flex align-items-center">
+                                    <div class="bg-success text-white rounded p-2 me-3" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">M</div>
+                                    <div>
+                                        <h6 class="mb-0">Maya (PayMaya)</h6>
+                                        <small class="text-muted">Digital payments</small>
+                                    </div>
+                                </div>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" checked>
+                                </div>
+                            </div>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Public Key</label>
+                                    <input type="text" class="form-control" value="pk_live_abc123...">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Secret Key</label>
+                                    <input type="password" class="form-control" value="••••••••••••">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Credit Card -->
+                        <div class="border rounded p-3 mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <div class="d-flex align-items-center">
+                                    <div class="bg-dark text-white rounded p-2 me-3" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">CC</div>
+                                    <div>
+                                        <h6 class="mb-0">Credit/Debit Card</h6>
+                                        <small class="text-muted">Via PayMongo</small>
+                                    </div>
+                                </div>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" checked>
+                                </div>
+                            </div>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">PayMongo Public Key</label>
+                                    <input type="text" class="form-control" value="pk_live_xyz789...">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">PayMongo Secret Key</label>
+                                    <input type="password" class="form-control" value="••••••••••••">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- COD -->
+                        <div class="border rounded p-3 mb-3">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="d-flex align-items-center">
+                                    <div class="bg-secondary text-white rounded p-2 me-3" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">₱</div>
+                                    <div>
+                                        <h6 class="mb-0">Cash on Delivery (COD)</h6>
+                                        <small class="text-muted">Pay when you receive</small>
+                                    </div>
+                                </div>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" checked>
+                                </div>
+                            </div>
+                            <div class="mt-3">
+                                <label class="form-label">COD Fee</label>
+                                <div class="input-group" style="width: 200px;">
+                                    <span class="input-group-text">₱</span>
+                                    <input type="number" class="form-control" value="0">
+                                </div>
+                                <small class="text-muted">Additional fee charged for COD orders</small>
+                            </div>
+                        </div>
+                        
+                        <button class="btn btn-primary btn-icon" title="Save payment settings" aria-label="Save payment settings"><i class="bi bi-check-lg" aria-hidden="true"></i><span class="visually-hidden">Save Payment Settings</span></button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Age Verification -->
+            <div class="tab-pane fade" id="age-verification">
+                <div class="card">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0">Age Verification Settings</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-warning">
+                            <strong>Legal Requirement:</strong> Philippine law requires age verification for vape products. Customers must be 18 years or older to purchase.
+                        </div>
+                        <div class="mb-4">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="ageVerifyEnabled" checked>
+                                <label class="form-check-label" for="ageVerifyEnabled">
+                                    <strong>Enable age verification</strong>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Minimum Age</label>
+                            <input type="number" class="form-control" value="18" style="width: 100px;">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Verification Methods</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="methodId" checked>
+                                <label class="form-check-label" for="methodId">
+                                    ID Upload (Philippine National ID, Driver's License, Passport)
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="methodDob" checked>
+                                <label class="form-check-label" for="methodDob">
+                                    Date of Birth verification
+                                </label>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Verification at</label>
+                            <select class="form-select" style="width: 300px;">
+                                <option selected>Account registration</option>
+                                <option>First checkout only</option>
+                                <option>Every checkout</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Failed Verification Message</label>
+                            <textarea class="form-control" rows="3">Sorry, you must be 18 years or older to purchase vape products. Age verification is required by Philippine law.</textarea>
+                        </div>
+                        <button class="btn btn-primary btn-icon" title="Save verification settings" aria-label="Save verification settings"><i class="bi bi-check-lg" aria-hidden="true"></i><span class="visually-hidden">Save Verification Settings</span></button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Notifications -->
+            <div class="tab-pane fade" id="notifications">
+                <div class="card">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0">Notification Settings</h5>
+                    </div>
+                    <div class="card-body">
+                        <h6 class="mb-3">Email Notifications</h6>
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Event</th>
+                                    <th>Customer</th>
+                                    <th>Admin</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>New Order</td>
+                                    <td><input type="checkbox" class="form-check-input" checked></td>
+                                    <td><input type="checkbox" class="form-check-input" checked></td>
+                                </tr>
+                                <tr>
+                                    <td>Order Shipped</td>
+                                    <td><input type="checkbox" class="form-check-input" checked></td>
+                                    <td><input type="checkbox" class="form-check-input"></td>
+                                </tr>
+                                <tr>
+                                    <td>Order Delivered</td>
+                                    <td><input type="checkbox" class="form-check-input" checked></td>
+                                    <td><input type="checkbox" class="form-check-input"></td>
+                                </tr>
+                                <tr>
+                                    <td>Payment Failed</td>
+                                    <td><input type="checkbox" class="form-check-input" checked></td>
+                                    <td><input type="checkbox" class="form-check-input" checked></td>
+                                </tr>
+                                <tr>
+                                    <td>Age Verification Pending</td>
+                                    <td><input type="checkbox" class="form-check-input"></td>
+                                    <td><input type="checkbox" class="form-check-input" checked></td>
+                                </tr>
+                                <tr>
+                                    <td>Low Stock Alert</td>
+                                    <td><input type="checkbox" class="form-check-input"></td>
+                                    <td><input type="checkbox" class="form-check-input" checked></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <hr>
+                        <h6 class="mb-3">SMS Notifications</h6>
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" checked>
+                            <label class="form-check-label">Enable SMS notifications (via Semaphore)</label>
+                        </div>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Semaphore API Key</label>
+                                <input type="password" class="form-control" value="••••••••••••">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Sender Name</label>
+                                <input type="text" class="form-control" value="VapeShopPH">
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <button class="btn btn-primary btn-icon" title="Save notification settings" aria-label="Save notification settings"><i class="bi bi-check-lg" aria-hidden="true"></i><span class="visually-hidden">Save Notification Settings</span></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Regional Rules -->
+            <div class="tab-pane fade" id="regional">
+                <div class="card">
+                    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Regional Rules & Restrictions</h5>
+                        <button class="btn btn-sm btn-primary btn-icon" title="Add region rule" aria-label="Add region rule"><i class="bi bi-plus-lg" aria-hidden="true"></i><span class="visually-hidden">Add Region Rule</span></button>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info">
+                            <strong>Note:</strong> Some cities/provinces in the Philippines have additional vape regulations. Configure restrictions here.
+                        </div>
+                        <table class="table table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Region/City</th>
+                                    <th>Restriction Type</th>
+                                    <th>Details</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Davao City</td>
+                                    <td><span class="badge bg-danger">Shipping Ban</span></td>
+                                    <td>No vape products allowed (city ordinance)</td>
+                                    <td><span class="badge bg-success">Active</span></td>
+                                    <td><button class="btn btn-sm btn-outline-primary btn-icon" title="Edit" aria-label="Edit"><i class="bi bi-pencil-square" aria-hidden="true"></i><span class="visually-hidden">Edit</span></button></td>
+                                </tr>
+                                <tr>
+                                    <td>Quezon City</td>
+                                    <td><span class="badge bg-warning text-dark">Additional Tax</span></td>
+                                    <td>+5% local tax on vape products</td>
+                                    <td><span class="badge bg-success">Active</span></td>
+                                    <td><button class="btn btn-sm btn-outline-primary btn-icon" title="Edit" aria-label="Edit"><i class="bi bi-pencil-square" aria-hidden="true"></i><span class="visually-hidden">Edit</span></button></td>
+                                </tr>
+                                <tr>
+                                    <td>ARMM Region</td>
+                                    <td><span class="badge bg-danger">Shipping Ban</span></td>
+                                    <td>No delivery to this region</td>
+                                    <td><span class="badge bg-success">Active</span></td>
+                                    <td><button class="btn btn-sm btn-outline-primary btn-icon" title="Edit" aria-label="Edit"><i class="bi bi-pencil-square" aria-hidden="true"></i><span class="visually-hidden">Edit</span></button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <button class="btn btn-primary btn-icon" title="Save regional rules" aria-label="Save regional rules"><i class="bi bi-check-lg" aria-hidden="true"></i><span class="visually-hidden">Save Regional Rules</span></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

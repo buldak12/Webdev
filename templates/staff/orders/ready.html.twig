@@ -1,0 +1,86 @@
+{% extends 'staff/base.html.twig' %}
+
+{% block title %}Ready to Ship{% endblock %}
+{% block breadcrumb %}Ready to Ship{% endblock %}
+
+{% block body %}
+<div class="page-header d-flex justify-content-between align-items-center">
+    <h1>Ready to Ship</h1>
+    <a href="{{ path('staff_orders') }}" class="btn btn-sm btn-outline-secondary">Back to Queue</a>
+</div>
+
+<div class="alert alert-info d-flex align-items-center mb-4">
+    <span class="me-2"><strong>Live Queue:</strong></span>
+    <div>
+        {{ orders|length }} order{{ orders|length == 1 ? '' : 's' }} are currently marked as ready to ship.
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Order</th>
+                        <th>Customer</th>
+                        <th>Items</th>
+                        <th>Courier</th>
+                        <th>Tracking #</th>
+                        <th>Region</th>
+                        <th>Packed</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in orders %}
+                        {% set shipment = order.shipment %}
+                        <tr>
+                            <td><strong>#{{ order.orderNumber ?? ('ORD-' ~ order.id) }}</strong></td>
+                            <td>
+                                <div>{{ order.user ? order.user.fullName : 'Unknown Customer' }}</div>
+                                <small class="text-muted">{{ order.user ? order.user.email : 'N/A' }}</small>
+                            </td>
+                            <td>{{ order.itemCount }} item{{ order.itemCount == 1 ? '' : 's' }}</td>
+                            <td>
+                                <span class="badge bg-light text-dark">{{ shipment and shipment.courierLabel ? shipment.courierLabel : 'Unassigned' }}</span>
+                            </td>
+                            <td>{% if shipment and shipment.trackingNumber %}<code>{{ shipment.trackingNumber }}</code>{% else %}<span class="text-muted">Not assigned</span>{% endif %}</td>
+                            <td>{{ order.shippingAddress ? order.shippingAddress.regionLabel : 'N/A' }}</td>
+                            <td>
+                                {% if shipment and shipment.packedAt %}
+                                    {{ shipment.packedAt|date('M j, g:i A') }}
+                                {% else %}
+                                    {{ order.updatedAt ? order.updatedAt|date('M j, g:i A') : 'N/A' }}
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="d-flex gap-1">
+                                    <a href="{{ path('staff_orders_ship', {id: order.id}) }}" class="btn btn-sm btn-success">Ship</a>
+                                    <a href="{{ path('staff_orders_fulfill', {id: order.id}) }}" class="btn btn-sm btn-outline-primary">View</a>
+                                </div>
+                            </td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="8" class="text-center py-4 text-muted">No orders are currently ready to ship.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="card-footer bg-white d-flex justify-content-between align-items-center">
+        <div class="text-muted">
+            {{ orders|length }} ready-to-ship order{{ orders|length == 1 ? '' : 's' }}
+        </div>
+        <div>
+            {% for courier, count in courier_breakdown %}
+                <span class="badge bg-secondary me-2">{{ courier }}: {{ count }}</span>
+            {% else %}
+                <span class="text-muted">No courier assignments yet.</span>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,254 @@
+{% extends 'customer/base.html.twig' %}
+
+{% block title %}About Us - VapeShop{% endblock %}
+
+{% block body %}
+{# ============================================
+   HERO SECTION
+   ============================================ #}
+<section class="about-hero py-5">
+    <div class="container py-4">
+        <div class="row align-items-center">
+            <div class="col-lg-6">
+                <nav aria-label="breadcrumb" class="mb-3">
+                    <ol class="breadcrumb small">
+                        <li class="breadcrumb-item"><a href="{{ path('app_home') }}" class="text-white-50">Home</a></li>
+                        <li class="breadcrumb-item active text-white" aria-current="page">About Us</li>
+                    </ol>
+                </nav>
+                <h1 class="display-5 fw-bold text-white mb-3">Our Story</h1>
+                <p class="lead text-white-50">
+                    Building the Philippines' most trusted vape shop, one satisfied customer at a time.
+                </p>
+            </div>
+            <div class="col-lg-6 text-center d-none d-lg-block">
+                <i class="bi bi-building text-white" style="font-size: 8rem; opacity: 0.15;"></i>
+            </div>
+        </div>
+    </div>
+</section>
+
+{# ============================================
+   OUR STORY SECTION
+   ============================================ #}
+<section class="py-5">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="text-center mb-5">
+                    <span class="badge bg-dark mb-3">Est. 2020</span>
+                    <h2 class="h3 fw-bold">How It All Started</h2>
+                </div>
+                <div class="story-content">
+                    <p class="lead text-muted">
+                        VapeShop PH was born from a simple frustration: finding authentic, quality vaping products 
+                        in the Philippines was unnecessarily difficult.
+                    </p>
+                    <p class="text-muted">
+                        Our founder, a long-time vaping enthusiast, was tired of receiving counterfeit products 
+                        and dealing with unreliable sellers. In 2020, he decided to create the solution he wished existed—a 
+                        trustworthy online store that prioritizes product authenticity and customer satisfaction.
+                    </p>
+                    <p class="text-muted">
+                        What started as a small operation from a garage has grown into one of the Philippines' 
+                        premier vape retailers. We've served over 10,000 customers and continue to grow every day, 
+                        but our core values remain the same: authenticity, quality, and customer care.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+{# ============================================
+   VALUES SECTION
+   ============================================ #}
+<section class="py-5 bg-light">
+    <div class="container">
+        <div class="text-center mb-5">
+            <h2 class="h3 fw-bold">Our Values</h2>
+            <p class="text-muted">The principles that guide everything we do</p>
+        </div>
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body text-center p-4">
+                        <div class="value-icon mb-3">
+                            <i class="bi bi-patch-check"></i>
+                        </div>
+                        <h5 class="fw-semibold">Authenticity</h5>
+                        <p class="text-muted small mb-0">
+                            Every product is sourced directly from authorized distributors. 
+                            We guarantee 100% authentic items, always.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body text-center p-4">
+                        <div class="value-icon mb-3">
+                            <i class="bi bi-shield-check"></i>
+                        </div>
+                        <h5 class="fw-semibold">Compliance</h5>
+                        <p class="text-muted small mb-0">
+                            We strictly adhere to Philippine vaping regulations, 
+                            including mandatory age verification for all customers.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body text-center p-4">
+                        <div class="value-icon mb-3">
+                            <i class="bi bi-heart"></i>
+                        </div>
+                        <h5 class="fw-semibold">Customer First</h5>
+                        <p class="text-muted small mb-0">
+                            Your satisfaction is our priority. From selection to delivery, 
+                            we're here to ensure an exceptional experience.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+{# ============================================
+   MEET THE TEAM SECTION
+   ============================================ #}
+<section class="py-5">
+    <div class="container">
+        <div class="text-center mb-5">
+            <h2 class="h3 fw-bold">Meet the Team</h2>
+            <p class="text-muted">The passionate people behind VapeShop</p>
+        </div>
+        <div class="row g-4 justify-content-center">
+            {% for member in team %}
+                <div class="col-md-6 col-lg-3">
+                    <div class="card h-100 border-0 shadow-sm team-card">
+                        <div class="card-body text-center p-4">
+                            <div class="team-avatar mb-3">
+                                {% if member.image %}
+                                    <img src="{{ asset(member.image) }}" alt="{{ member.name }}" class="rounded-circle">
+                                {% else %}
+                                    <div class="avatar-placeholder">
+                                        <i class="bi bi-person"></i>
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <h5 class="fw-semibold mb-1">{{ member.name }}</h5>
+                            <small class="text-primary d-block mb-3">{{ member.role }}</small>
+                            <p class="text-muted small mb-0">{{ member.bio }}</p>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+{# ============================================
+   STATS SECTION
+   ============================================ #}
+<section class="py-5 bg-dark text-white">
+    <div class="container">
+        <div class="row text-center g-4">
+            <div class="col-md-3 col-6">
+                <div class="display-4 fw-bold mb-1">500+</div>
+                <small class="text-white-50">Products</small>
+            </div>
+            <div class="col-md-3 col-6">
+                <div class="display-4 fw-bold mb-1">10K+</div>
+                <small class="text-white-50">Happy Customers</small>
+            </div>
+            <div class="col-md-3 col-6">
+                <div class="display-4 fw-bold mb-1">50+</div>
+                <small class="text-white-50">Brands</small>
+            </div>
+            <div class="col-md-3 col-6">
+                <div class="display-4 fw-bold mb-1">4.9★</div>
+                <small class="text-white-50">Average Rating</small>
+            </div>
+        </div>
+    </div>
+</section>
+
+{# ============================================
+   CTA SECTION
+   ============================================ #}
+<section class="py-5">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8 text-center">
+                <h2 class="h3 fw-bold mb-3">Ready to Experience the Difference?</h2>
+                <p class="text-muted mb-4">
+                    Join thousands of satisfied customers who trust VapeShop for their vaping needs.
+                </p>
+                <div class="d-flex justify-content-center gap-3">
+                    <a href="{{ path('shop_index') }}" class="btn btn-dark btn-lg">
+                        <i class="bi bi-bag me-2"></i>Shop Now
+                    </a>
+                    <a href="{{ path('page_contact') }}" class="btn btn-outline-dark btn-lg">
+                        Contact Us
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<style>
+.about-hero {
+    background: linear-gradient(135deg, #18181b 0%, #27272a 50%, #3f3f46 100%);
+}
+
+.value-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 16px;
+    background: #f4f4f5;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: #18181b;
+}
+
+.team-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.team-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px rgba(0,0,0,0.1) !important;
+}
+
+.team-avatar {
+    width: 100px;
+    height: 100px;
+    margin: 0 auto;
+}
+.team-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.avatar-placeholder {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #e4e4e7 0%, #d4d4d8 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
+    color: #71717a;
+}
+
+.story-content p {
+    line-height: 1.8;
+}
+</style>
+{% endblock %}

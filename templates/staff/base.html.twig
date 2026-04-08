@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Staff Dashboard{% endblock %} - VapeShop Staff</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    {% block stylesheets %}
+    {% endblock %}
+    {% block javascripts %}
+        {% block importmap %}{{ importmap('app') }}{% endblock %}
+    {% endblock %}
+    <style>
+        :root {
+            --sidebar-width: 220px;
+            --color-bg: #fafafa;
+            --color-surface: #ffffff;
+            --color-border: #f0f0f0;
+            --color-text: #1a1a1a;
+            --color-text-muted: #737373;
+            --color-accent: #059669;
+            --color-accent-light: #ecfdf5;
+        }
+        * {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+        body {
+            background-color: var(--color-bg);
+            color: var(--color-text);
+            font-size: 0.875rem;
+        }
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: var(--sidebar-width);
+            height: 100vh;
+            background: var(--color-surface);
+            border-right: 1px solid var(--color-border);
+            z-index: 1000;
+            overflow-y: auto;
+        }
+        .sidebar-brand {
+            padding: 1.25rem 1rem;
+            border-bottom: 1px solid var(--color-border);
+        }
+        .sidebar-brand h4 {
+            color: var(--color-text);
+            margin: 0;
+            font-weight: 600;
+            font-size: 0.9375rem;
+            letter-spacing: -0.025em;
+        }
+        .sidebar-brand small {
+            color: var(--color-accent);
+            font-size: 0.6875rem;
+            font-weight: 500;
+        }
+        .sidebar-nav {
+            padding: 0.5rem 0;
+        }
+        .sidebar-nav .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 0.625rem 1rem;
+            color: var(--color-text-muted);
+            text-decoration: none;
+            transition: all 0.15s ease;
+            font-size: 0.8125rem;
+            font-weight: 450;
+            margin: 0.125rem 0.5rem;
+            border-radius: 0.5rem;
+        }
+        .sidebar-nav .nav-link:hover {
+            color: var(--color-text);
+            background: var(--color-accent-light);
+        }
+        .sidebar-nav .nav-link.active {
+            color: #fff;
+            background: var(--color-accent);
+        }
+        .sidebar-nav .nav-link i {
+            width: 20px;
+            margin-right: 0.5rem;
+            font-size: 0.875rem;
+        }
+        .sidebar-nav .badge {
+            margin-left: auto;
+            font-size: 0.625rem;
+            padding: 0.25rem 0.4rem;
+        }
+        .main-content {
+            margin-left: var(--sidebar-width);
+            min-height: 100vh;
+        }
+        .top-navbar {
+            background: var(--color-surface);
+            padding: 0.75rem 1.5rem;
+            border-bottom: 1px solid var(--color-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .content-wrapper {
+            padding: 1.25rem;
+            max-width: 1200px;
+        }
+        .page-header {
+            margin-bottom: 1.25rem;
+        }
+        .page-header h1 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--color-text);
+            margin: 0;
+            letter-spacing: -0.025em;
+        }
+        .card {
+            border: 1px solid var(--color-border);
+            background: var(--color-surface);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+            border-radius: 0.75rem;
+        }
+        .card-header {
+            border-bottom: 1px solid var(--color-border);
+            padding: 0.875rem 1rem;
+        }
+        .card-header h5 {
+            font-size: 0.8125rem;
+            font-weight: 600;
+            margin: 0;
+        }
+        .stat-card {
+            padding: 1rem;
+            text-align: center;
+        }
+        .stat-card .stat-value {
+            font-size: 1.5rem;
+            font-weight: 600;
+            letter-spacing: -0.025em;
+        }
+        .stat-card .stat-label {
+            color: var(--color-text-muted);
+            font-size: 0.6875rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .order-card {
+            border: 1px solid var(--color-border);
+            border-left: 3px solid var(--color-accent);
+            margin-bottom: 0.75rem;
+            border-radius: 0.5rem;
+            background: var(--color-surface);
+        }
+        .order-card.urgent {
+            border-left-color: #dc2626;
+            background: #fef2f2;
+        }
+        .order-card.ready {
+            border-left-color: #f59e0b;
+        }
+        .order-card .order-id {
+            font-weight: 600;
+            color: var(--color-text);
+            font-size: 0.8125rem;
+        }
+        .badge {
+            font-weight: 500;
+            font-size: 0.6875rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.375rem;
+        }
+        .table {
+            font-size: 0.8125rem;
+        }
+        .table th {
+            font-weight: 500;
+            color: var(--color-text-muted);
+            font-size: 0.6875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-bottom: 1px solid var(--color-border);
+            padding: 0.625rem 0.875rem;
+        }
+        .table td {
+            padding: 0.75rem 0.875rem;
+            border-bottom: 1px solid var(--color-border);
+        }
+        .btn {
+            font-size: 0.8125rem;
+            font-weight: 500;
+            padding: 0.5rem 0.875rem;
+            border-radius: 0.5rem;
+        }
+        .btn-sm {
+            font-size: 0.75rem;
+            padding: 0.375rem 0.625rem;
+        }
+        .btn-primary {
+            background: var(--color-accent);
+            border-color: var(--color-accent);
+        }
+        .btn-primary:hover {
+            background: #047857;
+            border-color: #047857;
+        }
+        .form-control, .form-select {
+            font-size: 0.8125rem;
+            border-radius: 0.5rem;
+            border-color: var(--color-border);
+        }
+        @media (max-width: 991.98px) {
+            .sidebar {
+                transform: translateX(-100%);
+                transition: transform 0.2s ease;
+            }
+            .sidebar.show {
+                transform: translateX(0);
+            }
+            .main-content {
+                margin-left: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <nav class="sidebar">
+        <div class="sidebar-brand">
+            <h4><i class="bi bi-cloud-haze2 me-2"></i>VapeShop</h4>
+            <small>Staff Portal</small>
+        </div>
+        <div class="sidebar-nav">
+            <a href="{{ path('staff_dashboard') }}" class="nav-link {% if app.request.get('_route') == 'staff_dashboard' %}active{% endif %}">
+                <i class="bi bi-grid-1x2"></i> Dashboard
+            </a>
+            <a href="{{ path('staff_orders') }}" class="nav-link {% if 'staff_order' in app.request.get('_route') and app.request.get('_route') != 'staff_orders_ready' %}active{% endif %}">
+                <i class="bi bi-box-seam"></i> Order Fulfillment
+                <span class="badge bg-warning text-dark">{{ staff_metrics.fulfillment_count|default(0) }}</span>
+            </a>
+            <a href="{{ path('staff_orders_ready') }}" class="nav-link {% if app.request.get('_route') == 'staff_orders_ready' %}active{% endif %}">
+                <i class="bi bi-truck"></i> Ready to Ship
+                <span class="badge" style="background: var(--color-accent); color: #fff;">{{ staff_metrics.ready_to_ship_count|default(0) }}</span>
+            </a>
+            <a href="{{ path('staff_returns') }}" class="nav-link {% if app.request.get('_route') == 'staff_returns' %}active{% endif %}">
+                <i class="bi bi-arrow-return-left"></i> Returns
+                <span class="badge bg-danger">{{ staff_metrics.returns_count|default(0) }}</span>
+            </a>
+            
+            <hr style="margin: 1rem; border-color: var(--color-border);">
+            
+            <a href="{{ path('app_logout') }}" class="nav-link text-danger">
+                <i class="bi bi-box-arrow-right"></i> Logout
+            </a>
+        </div>
+        
+        {# Staff role notice #}
+        <div style="position: absolute; bottom: 0; left: 0; right: 0; padding: 1rem; border-top: 1px solid var(--color-border); background: var(--color-bg);">
+            <div class="d-flex align-items-center gap-2">
+                <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--color-accent-light); display: flex; align-items: center; justify-content: center;">
+                    <i class="bi bi-person" style="color: var(--color-accent);"></i>
+                </div>
+                <div>
+                    <div style="font-size: 0.75rem; font-weight: 500;">{{ app.user.fullName|default('Staff') }}</div>
+                    <div style="font-size: 0.65rem; color: var(--color-text-muted);">Staff Member</div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="top-navbar">
+            <div class="d-flex align-items-center">
+                <button class="btn btn-link d-lg-none me-2 p-0" id="sidebarToggle">
+                    Menu
+                </button>
+                <span style="font-size: 0.8125rem; color: var(--color-text-muted);">{% block breadcrumb %}Dashboard{% endblock %}</span>
+            </div>
+            <div class="d-flex align-items-center gap-3">
+                <span class="text-muted" style="font-size: 0.75rem;">
+                    {{ "now"|date("M j, Y") }}
+                </span>
+                <div class="dropdown">
+                    <button class="btn btn-sm" style="background: var(--color-accent-light); border: none; color: var(--color-accent);" data-bs-toggle="dropdown">
+                        Staff
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end" style="font-size: 0.8125rem;">
+                        <li><a class="dropdown-item" href="#">Profile</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{{ path('app_home') }}">Exit</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="content-wrapper">
+            {% block body %}{% endblock %}
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('sidebarToggle')?.addEventListener('click', function() {
+            document.querySelector('.sidebar').classList.toggle('show');
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,322 @@
+<script>
+(function() {
+    const suggestEndpoint = '{{ path('api_address_suggest') }}';
+    const reverseEndpoint = '{{ path('api_address_reverse') }}';
+    const cachePrefix = 'address_lookup_cache_v1:';
+    const cacheTtlMs = 12 * 60 * 60 * 1000;
+    const memoryCache = new Map();
+
+    function debounce(fn, wait) {
+        let timeoutId;
+        return function() {
+            const args = arguments;
+            clearTimeout(timeoutId);
+            timeoutId = setTimeout(function() {
+                fn.apply(null, args);
+            }, wait);
+        };
+    }
+
+    function setFieldValue(field, value) {
+        if (!field || typeof value !== 'string' || value.trim() === '') {
+            return;
+        }
+
+        field.value = value.trim();
+        field.dispatchEvent(new Event('input', { bubbles: true }));
+        field.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+
+    function getCachedValue(key) {
+        const now = Date.now();
+
+        const inMemory = memoryCache.get(key);
+        if (inMemory) {
+            if (inMemory.expiresAt > now) {
+                return inMemory.value;
+            }
+            memoryCache.delete(key);
+        }
+
+        try {
+            const raw = sessionStorage.getItem(cachePrefix + key);
+            if (!raw) {
+                return null;
+            }
+
+            const parsed = JSON.parse(raw);
+            if (!parsed || parsed.expiresAt <= now) {
+                sessionStorage.removeItem(cachePrefix + key);
+                return null;
+            }
+
+            memoryCache.set(key, parsed);
+            return parsed.value;
+        } catch (error) {
+            return null;
+        }
+    }
+
+    function setCachedValue(key, value) {
+        const entry = {
+            value: value,
+            expiresAt: Date.now() + cacheTtlMs,
+        };
+
+        memoryCache.set(key, entry);
+
+        try {
+            sessionStorage.setItem(cachePrefix + key, JSON.stringify(entry));
+        } catch (error) {
+            // Ignore storage quota or privacy-mode errors.
+        }
+    }
+
+    function normalizeQueryKey(query) {
+        return 'suggest:' + query.trim().toLowerCase();
+    }
+
+    function normalizeReverseKey(lat, lon) {
+        return 'reverse:' + lat.toFixed(4) + ',' + lon.toFixed(4);
+    }
+
+    function applySuggestionToFields(suggestion, fields, lookupInput, statusText, clearResults) {
+        setFieldValue(fields.streetField, suggestion.streetAddress || suggestion.displayName || '');
+        setFieldValue(fields.barangayField, suggestion.barangay || '');
+        setFieldValue(fields.cityField, suggestion.city || '');
+        setFieldValue(fields.provinceField, suggestion.province || '');
+        setFieldValue(fields.postalCodeField, suggestion.postalCode || '');
+
+        if (fields.regionField && suggestion.region) {
+            const hasOption = Array.from(fields.regionField.options).some(function(option) {
+                return option.value === suggestion.region;
+            });
+
+            if (hasOption) {
+                fields.regionField.value = suggestion.region;
+                fields.regionField.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+        }
+
+        lookupInput.value = suggestion.displayName || lookupInput.value;
+        statusText.textContent = 'Address fields updated from selected suggestion.';
+        clearResults();
+    }
+
+    function initAddressLookup(form) {
+        if (form.dataset.addressLookupReady === '1') {
+            return;
+        }
+
+        const streetField = form.querySelector('[data-address-field="streetAddress"]');
+        if (!streetField) {
+            return;
+        }
+
+        form.dataset.addressLookupReady = '1';
+
+        const streetRow = streetField.closest('.mb-3') || streetField.parentElement;
+        if (!streetRow || !streetRow.parentElement) {
+            return;
+        }
+
+        const lookupRow = document.createElement('div');
+        lookupRow.className = 'mb-3';
+        lookupRow.innerHTML = [
+            '<label class="form-label">Address Lookup (Free)</label>',
+            '<div class="input-group">',
+            '<input type="search" class="form-control" placeholder="Search street, city, or barangay" autocomplete="off" data-address-lookup-input>',
+            '<button type="button" class="btn btn-outline-secondary" data-address-use-location><i class="bi bi-geo-alt me-1"></i>Use my location</button>',
+            '</div>',
+            '<div class="form-text" data-address-lookup-status>Type at least 3 characters to search OpenStreetMap data.</div>',
+            '<div class="list-group mt-2" data-address-lookup-results style="max-height: 220px; overflow-y: auto;"></div>'
+        ].join('');
+
+        streetRow.parentElement.insertBefore(lookupRow, streetRow);
+
+        const lookupInput = lookupRow.querySelector('[data-address-lookup-input]');
+        const useLocationBtn = lookupRow.querySelector('[data-address-use-location]');
+        const statusText = lookupRow.querySelector('[data-address-lookup-status]');
+        const resultsList = lookupRow.querySelector('[data-address-lookup-results]');
+
+        const barangayField = form.querySelector('[data-address-field="barangay"]');
+        const cityField = form.querySelector('[data-address-field="city"]');
+        const provinceField = form.querySelector('[data-address-field="province"]');
+        const regionField = form.querySelector('[data-address-field="region"]');
+        const postalCodeField = form.querySelector('[data-address-field="postalCode"]');
+        const fields = {
+            streetField: streetField,
+            barangayField: barangayField,
+            cityField: cityField,
+            provinceField: provinceField,
+            regionField: regionField,
+            postalCodeField: postalCodeField,
+        };
+
+        let requestVersion = 0;
+
+        function clearResults() {
+            resultsList.innerHTML = '';
+        }
+
+        function renderResults(results) {
+            clearResults();
+
+            if (!Array.isArray(results) || results.length === 0) {
+                statusText.textContent = 'No matching address found. You can still fill the form manually.';
+                return;
+            }
+
+            statusText.textContent = 'Select a suggestion to auto-fill your fields.';
+
+            results.forEach(function(suggestion) {
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'list-group-item list-group-item-action';
+
+                const title = document.createElement('div');
+                title.className = 'fw-medium';
+                title.style.fontSize = '0.875rem';
+                title.textContent = suggestion.displayName || 'Address suggestion';
+
+                const meta = document.createElement('small');
+                meta.className = 'text-muted d-block';
+                meta.textContent = [suggestion.city, suggestion.province, suggestion.postalCode].filter(Boolean).join(' · ');
+
+                button.appendChild(title);
+                button.appendChild(meta);
+
+                button.addEventListener('click', function() {
+                    applySuggestionToFields(suggestion, fields, lookupInput, statusText, clearResults);
+                });
+
+                resultsList.appendChild(button);
+            });
+        }
+
+        const search = debounce(async function(query) {
+            requestVersion += 1;
+            const currentVersion = requestVersion;
+            const cacheKey = normalizeQueryKey(query);
+
+            const cached = getCachedValue(cacheKey);
+            if (cached) {
+                renderResults(cached);
+                statusText.textContent = 'Showing cached suggestions. Select one to auto-fill your fields.';
+                return;
+            }
+
+            statusText.textContent = 'Searching addresses...';
+            clearResults();
+
+            try {
+                const response = await fetch(suggestEndpoint + '?q=' + encodeURIComponent(query), {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Lookup request failed');
+                }
+
+                const payload = await response.json();
+
+                if (currentVersion !== requestVersion) {
+                    return;
+                }
+
+                if (!payload.success) {
+                    throw new Error(payload.error || 'Lookup unavailable');
+                }
+
+                const suggestions = payload.data || [];
+                setCachedValue(cacheKey, suggestions);
+                renderResults(suggestions);
+            } catch (error) {
+                if (currentVersion !== requestVersion) {
+                    return;
+                }
+
+                clearResults();
+                statusText.textContent = 'Address lookup is temporarily unavailable. Please enter details manually.';
+            }
+        }, 400);
+
+        lookupInput.addEventListener('input', function() {
+            const query = lookupInput.value.trim();
+
+            if (query.length < 3) {
+                requestVersion += 1;
+                clearResults();
+                statusText.textContent = 'Type at least 3 characters to search OpenStreetMap data.';
+                return;
+            }
+
+            search(query);
+        });
+
+        if (!('geolocation' in navigator)) {
+            useLocationBtn.disabled = true;
+            useLocationBtn.title = 'Geolocation is not supported by this browser.';
+            return;
+        }
+
+        useLocationBtn.addEventListener('click', async function() {
+            useLocationBtn.disabled = true;
+            statusText.textContent = 'Getting your current location...';
+            clearResults();
+
+            try {
+                const position = await new Promise(function(resolve, reject) {
+                    navigator.geolocation.getCurrentPosition(resolve, reject, {
+                        enableHighAccuracy: true,
+                        timeout: 10000,
+                        maximumAge: 120000,
+                    });
+                });
+
+                const latitude = Number(position.coords.latitude);
+                const longitude = Number(position.coords.longitude);
+                const cacheKey = normalizeReverseKey(latitude, longitude);
+                const cachedSuggestion = getCachedValue(cacheKey);
+
+                if (cachedSuggestion) {
+                    applySuggestionToFields(cachedSuggestion, fields, lookupInput, statusText, clearResults);
+                    statusText.textContent = 'Address fields updated using cached location data.';
+                    return;
+                }
+
+                statusText.textContent = 'Resolving your location to an address...';
+
+                const response = await fetch(
+                    reverseEndpoint + '?lat=' + encodeURIComponent(latitude) + '&lon=' + encodeURIComponent(longitude),
+                    {
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    }
+                );
+
+                if (!response.ok) {
+                    throw new Error('Reverse lookup request failed');
+                }
+
+                const payload = await response.json();
+                if (!payload.success || !payload.data) {
+                    throw new Error(payload.error || 'No address found for your location');
+                }
+
+                setCachedValue(cacheKey, payload.data);
+                applySuggestionToFields(payload.data, fields, lookupInput, statusText, clearResults);
+            } catch (error) {
+                statusText.textContent = 'Unable to get your location. You can search or fill the address manually.';
+            } finally {
+                useLocationBtn.disabled = false;
+            }
+        });
+    }
+
+    document.querySelectorAll('form').forEach(initAddressLookup);
+})();
+</script>

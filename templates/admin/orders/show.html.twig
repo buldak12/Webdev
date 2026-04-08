@@ -1,0 +1,297 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}Order #{{ order.orderNumber }}{% endblock %}
+{% block breadcrumb %}Sales / Orders / #{{ order.orderNumber }}{% endblock %}
+
+{% block body %}
+{% set statuses = constant('App\\Entity\\Order::STATUSES') %}
+{% set statusClass = {
+    'pending': 'warning',
+    'awaiting_verification': 'warning',
+    'verified': 'info',
+    'awaiting_payment': 'secondary',
+    'paid': 'primary',
+    'processing': 'info',
+    'ready_to_ship': 'primary',
+    'shipped': 'dark',
+    'delivered': 'success',
+    'cancelled': 'danger',
+    'refunded': 'secondary'
+} %}
+{% set payment = order.successfulPayment ?: (order.payments|length > 0 ? order.payments|first : null) %}
+{% set shipment = order.shipment %}
+{% set customer = order.user %}
+{% set initials = (customer.firstName|slice(0, 1) ~ customer.lastName|slice(0, 1))|upper %}
+{% set isStatusLocked = order.status == 'delivered' %}
+
+<div class="page-header d-flex justify-content-between align-items-center">
+    <div>
+        <h1 class="mb-1">Order #{{ order.orderNumber }}</h1>
+        <span class="badge bg-{{ statusClass[order.status] ?? 'secondary' }}">{{ order.statusLabel }}</span>
+        <span class="text-muted ms-2">{{ order.createdAt|date('F j, Y \a\t g:i A') }}</span>
+        {% if isStatusLocked %}
+            <div class="small text-muted mt-1">Delivered orders are locked and can no longer be status-edited.</div>
+        {% endif %}
+    </div>
+    <form method="post" action="{{ path('admin_orders_status', {id: order.id}) }}" class="d-flex flex-wrap gap-2 align-items-center">
+        <select class="form-select form-select-sm" name="status" style="min-width: 180px;" {{ isStatusLocked ? 'disabled' : '' }}>
+            {% for code, label in statuses %}
+                <option value="{{ code }}" {{ order.status == code ? 'selected' : '' }}>{{ label }}</option>
+            {% endfor %}
+        </select>
+        <input type="text" class="form-control form-control-sm" name="courier" placeholder="Courier (for shipped)" {{ isStatusLocked ? 'disabled' : '' }}>
+        <input type="text" class="form-control form-control-sm" name="tracking_number" placeholder="Tracking #" {{ isStatusLocked ? 'disabled' : '' }}>
+        <input type="text" class="form-control form-control-sm" name="reason" placeholder="Reason (for cancel)" {{ isStatusLocked ? 'disabled' : '' }}>
+        <button type="submit" class="btn btn-sm btn-primary btn-icon" title="Update status" aria-label="Update status" {{ isStatusLocked ? 'disabled' : '' }}>
+            <i class="bi bi-arrow-repeat" aria-hidden="true"></i>
+            <span class="visually-hidden">Update Status</span>
+        </button>
+    </form>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card mb-4">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Order Items</h5>
+            </div>
+            <div class="card-body p-0">
+                <table class="table mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Product</th>
+                            <th>Variant</th>
+                            <th class="text-center">Qty</th>
+                            <th class="text-end">Price</th>
+                            <th class="text-end">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in order.items %}
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <img src="{{ asset(item.variant and item.variant.product and item.variant.product.mainImage ? item.variant.product.mainImage : 'assets/images/lilac-prod-300x300.png') }}" width="48" height="48" class="rounded me-3" style="object-fit: cover;">
+                                        <div>
+                                            <div class="fw-medium">{{ item.productName }}</div>
+                                            <small class="text-muted">SKU: {{ item.variantSku ?: 'N/A' }}</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td><span class="badge bg-light text-dark">{{ item.variantAttributes ?: 'Default' }}</span></td>
+                                <td class="text-center">{{ item.quantity }}</td>
+                                <td class="text-end">₱{{ item.unitPrice|number_format(2) }}</td>
+                                <td class="text-end">₱{{ item.total|number_format(2) }}</td>
+                            </tr>
+                        {% else %}
+                            <tr>
+                                <td colspan="5" class="text-center py-4 text-muted">No items found for this order.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot class="table-light">
+                        <tr>
+                            <td colspan="4" class="text-end">Subtotal</td>
+                            <td class="text-end">₱{{ order.subtotal|number_format(2) }}</td>
+                        </tr>
+                        <tr>
+                            <td colspan="4" class="text-end">Shipping ({{ order.shippingAddress ? order.shippingAddress.regionLabel : 'N/A' }})</td>
+                            <td class="text-end">₱{{ order.shippingCost|number_format(2) }}</td>
+                        </tr>
+                        <tr>
+                            <td colspan="4" class="text-end">Tax</td>
+                            <td class="text-end">₱{{ order.tax|number_format(2) }}</td>
+                        </tr>
+                        {% if order.discount > 0 %}
+                            <tr>
+                                <td colspan="4" class="text-end text-success">Promo Discount {{ order.promoCode ? '(' ~ order.promoCode.code ~ ')' : '' }}</td>
+                                <td class="text-end text-success">-₱{{ order.discount|number_format(2) }}</td>
+                            </tr>
+                        {% endif %}
+                        <tr>
+                            <td colspan="4" class="text-end fw-bold">Total</td>
+                            <td class="text-end fw-bold fs-5">₱{{ order.total|number_format(2) }}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Order Timeline</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <div class="fw-medium">Order Placed</div>
+                    <small class="text-muted">{{ order.createdAt|date('F j, Y g:i A') }}</small>
+                </div>
+
+                {% if order.paidAt %}
+                    <div class="mb-3">
+                        <div class="fw-medium">Payment Confirmed</div>
+                        <small class="text-muted">{{ order.paidAt|date('F j, Y g:i A') }}</small>
+                    </div>
+                {% endif %}
+
+                {% if order.shippedAt %}
+                    <div class="mb-3">
+                        <div class="fw-medium">Shipped</div>
+                        <small class="text-muted">{{ order.shippedAt|date('F j, Y g:i A') }}</small>
+                    </div>
+                {% endif %}
+
+                {% if order.deliveredAt %}
+                    <div class="mb-0">
+                        <div class="fw-medium">Delivered</div>
+                        <small class="text-muted">{{ order.deliveredAt|date('F j, Y g:i A') }}</small>
+                    </div>
+                {% endif %}
+
+                {% if not order.paidAt and not order.shippedAt and not order.deliveredAt %}
+                    <p class="text-muted mb-0">No additional timeline events yet.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Admin Notes</h5>
+            </div>
+            <div class="card-body">
+                <form method="post" action="{{ path('admin_orders_notes', {id: order.id}) }}">
+                    <div class="mb-2">
+                        <textarea class="form-control" rows="3" name="internal_notes" placeholder="Add internal notes for this order...">{{ order.internalNotes ?: '' }}</textarea>
+                    </div>
+                    <button type="submit" class="btn btn-sm btn-outline-primary btn-icon" title="Save notes" aria-label="Save notes">
+                        <i class="bi bi-floppy" aria-hidden="true"></i>
+                        <span class="visually-hidden">Save Notes</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card mb-4">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Customer</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 48px; height: 48px; font-size: 1.25rem;">{{ initials }}</div>
+                    <div>
+                        <div class="fw-medium">{{ customer.fullName }}</div>
+                        <small class="text-muted">{{ customer.email }}</small>
+                    </div>
+                </div>
+                <div class="mb-2">
+                    <small class="text-muted">Phone</small>
+                    <div>{{ customer.phone ?: 'N/A' }}</div>
+                </div>
+                <div class="mb-2">
+                    <small class="text-muted">Age Verification</small>
+                    <div>
+                        {% if customer.ageVerificationStatus == 'verified' %}
+                            <span class="badge bg-success">Verified{{ customer.age ? ' (' ~ customer.age ~ ')' : '' }}</span>
+                        {% elseif customer.ageVerificationStatus == 'pending' %}
+                            <span class="badge bg-warning text-dark">Pending</span>
+                        {% else %}
+                            <span class="badge bg-danger">Rejected</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="mb-2">
+                    <small class="text-muted">Loyalty Points</small>
+                    <div>{{ customer.loyaltyPoints }} points</div>
+                </div>
+                <div>
+                    <small class="text-muted">Total Orders</small>
+                    <div>{{ customer.orders|length }} orders</div>
+                </div>
+                <hr>
+                <a href="{{ path('admin_customers_show', {id: customer.id}) }}" class="btn btn-sm btn-outline-primary btn-icon" title="View customer profile" aria-label="View customer profile">
+                    <i class="bi bi-person-vcard" aria-hidden="true"></i>
+                    <span class="visually-hidden">View Customer Profile</span>
+                </a>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Shipping Address</h5>
+            </div>
+            <div class="card-body">
+                {% if order.shippingAddress %}
+                    <address class="mb-0">
+                        <strong>{{ order.shippingAddress.fullName }}</strong><br>
+                        {{ order.shippingAddress.streetAddress }}<br>
+                        {% if order.shippingAddress.barangay %}{{ order.shippingAddress.barangay }}<br>{% endif %}
+                        {{ order.shippingAddress.city }}, {{ order.shippingAddress.province }} {{ order.shippingAddress.postalCode }}<br>
+                        {{ order.shippingAddress.country }}<br>
+                        <abbr title="Phone">P:</abbr> {{ order.shippingAddress.phone }}
+                    </address>
+                {% else %}
+                    <p class="text-muted mb-0">No shipping address available.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Payment Information</h5>
+            </div>
+            <div class="card-body">
+                {% if payment %}
+                    <div class="mb-2">
+                        <small class="text-muted">Payment Method</small>
+                        <div><span class="badge bg-success">{{ payment.gatewayLabel }}</span></div>
+                    </div>
+                    <div class="mb-2">
+                        <small class="text-muted">Transaction ID</small>
+                        <div><code>{{ payment.transactionId ?: 'N/A' }}</code></div>
+                    </div>
+                    <div class="mb-2">
+                        <small class="text-muted">Payment Status</small>
+                        <div><span class="badge bg-{{ payment.status == 'completed' ? 'success' : (payment.status == 'failed' ? 'danger' : 'secondary') }}">{{ payment.statusLabel }}</span></div>
+                    </div>
+                    <div>
+                        <small class="text-muted">Payment Date</small>
+                        <div>{{ payment.completedAt ? payment.completedAt|date('F j, Y g:i A') : 'Not completed yet' }}</div>
+                    </div>
+                {% else %}
+                    <p class="text-muted mb-0">No payment record yet.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Shipping Information</h5>
+            </div>
+            <div class="card-body">
+                {% if shipment %}
+                    <div class="mb-2">
+                        <small class="text-muted">Courier</small>
+                        <div>{{ shipment.courierLabel ?: 'Not assigned' }}</div>
+                    </div>
+                    <div class="mb-2">
+                        <small class="text-muted">Tracking Number</small>
+                        <div>{{ shipment.trackingNumber ?: 'N/A' }}</div>
+                    </div>
+                    <div class="mb-2">
+                        <small class="text-muted">Shipment Status</small>
+                        <div><span class="badge bg-secondary">{{ shipment.statusLabel }}</span></div>
+                    </div>
+                    <div>
+                        <small class="text-muted">Estimated Delivery</small>
+                        <div>{{ shipment.estimatedDelivery ? shipment.estimatedDelivery|date('F j, Y') : 'Not available' }}</div>
+                    </div>
+                {% else %}
+                    <p class="text-muted mb-0">No shipment record yet.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,115 @@
+{% extends 'staff/base.html.twig' %}
+
+{% block title %}Fulfillment Queue{% endblock %}
+{% block breadcrumb %}Fulfillment Queue{% endblock %}
+
+{% block body %}
+<div class="page-header d-flex justify-content-between align-items-center">
+    <h1>Fulfillment Queue</h1>
+    <a href="{{ path('staff_dashboard') }}" class="btn btn-sm btn-outline-secondary">Back to Dashboard</a>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-2">
+        <div class="card text-center py-2 border-warning">
+            <div class="h5 mb-0 text-warning">{{ queue_summary.pending }}</div>
+            <small class="text-muted">Pending</small>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card text-center py-2 border-info">
+            <div class="h5 mb-0 text-info">{{ queue_summary.in_progress }}</div>
+            <small class="text-muted">In Progress</small>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card text-center py-2 border-success">
+            <div class="h5 mb-0 text-success">{{ queue_summary.ready_to_ship }}</div>
+            <small class="text-muted">Ready to Ship</small>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card text-center py-2 border-primary">
+            <div class="h5 mb-0 text-primary">{{ queue_summary.shipped_today }}</div>
+            <small class="text-muted">Shipped Today</small>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card text-center py-2 border-danger">
+            <div class="h5 mb-0 text-danger">{{ queue_summary.refunded }}</div>
+            <small class="text-muted">Refunded</small>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card text-center py-2">
+            <div class="h5 mb-0">{{ queue_summary.total_queue }}</div>
+            <small class="text-muted">Total Queue</small>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Order</th>
+                        <th>Customer</th>
+                        <th>Items</th>
+                        <th>Total</th>
+                        <th>Payment</th>
+                        <th>Region</th>
+                        <th>Queued At</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% set statusClasses = {
+                        'paid': 'bg-warning text-dark',
+                        'processing': 'bg-info text-dark',
+                        'ready_to_ship': 'bg-primary'
+                    } %}
+                    {% for order in orders %}
+                        {% set payment = order.successfulPayment %}
+                        {% set queuedAt = order.paidAt ?? order.createdAt %}
+                        <tr class="{{ order.status == 'paid' ? 'table-warning' : (order.status == 'processing' ? 'table-info' : '') }}">
+                            <td><strong>#{{ order.orderNumber ?? ('ORD-' ~ order.id) }}</strong></td>
+                            <td>
+                                <div>{{ order.user ? order.user.fullName : 'Unknown Customer' }}</div>
+                                <small class="text-muted">{{ order.user ? order.user.email : 'N/A' }}</small>
+                            </td>
+                            <td>{{ order.itemCount }} item{{ order.itemCount == 1 ? '' : 's' }}</td>
+                            <td>₱{{ order.total|number_format(2, '.', ',') }}</td>
+                            <td>
+                                <span class="badge bg-light text-dark">{{ payment ? payment.gatewayLabel : 'N/A' }}</span>
+                            </td>
+                            <td>{{ order.shippingAddress ? order.shippingAddress.regionLabel : 'N/A' }}</td>
+                            <td>{{ queuedAt ? queuedAt|date('M j, g:i A') : 'N/A' }}</td>
+                            <td>
+                                <span class="badge {{ statusClasses[order.status] ?? 'bg-secondary' }}">{{ order.statusLabel }}</span>
+                            </td>
+                            <td>
+                                <a href="{{ path('staff_orders_fulfill', {id: order.id}) }}" class="btn btn-sm {{ order.status == 'processing' ? 'btn-info text-white' : 'btn-primary' }}">
+                                    {{ order.status == 'processing' ? 'Continue' : 'Fulfill' }}
+                                </a>
+                            </td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="9" class="text-center py-4 text-muted">No orders are waiting in the fulfillment queue.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="card-footer bg-white d-flex justify-content-between align-items-center">
+        <div class="text-muted">
+            Showing {{ orders|length }} order(s) in queue
+        </div>
+        <a href="{{ path('staff_orders_ready') }}" class="btn btn-sm btn-outline-primary">View Ready to Ship</a>
+    </div>
+</div>
+{% endblock %}

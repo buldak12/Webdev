@@ -1,0 +1,238 @@
+{% extends 'customer/base.html.twig' %}
+
+{% block title %}{{ product.name }}{% endblock %}
+
+{% block body %}
+<div class="container py-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb" style="font-size: 0.8125rem;">
+            <li class="breadcrumb-item"><a href="{{ path('shop_index') }}" class="text-decoration-none">Shop</a></li>
+            <li class="breadcrumb-item"><a href="{{ path('shop_category', {slug: product.category.slug}) }}" class="text-decoration-none">{{ product.category.name }}</a></li>
+            <li class="breadcrumb-item active">{{ product.name }}</li>
+        </ol>
+    </nav>
+    
+    <div class="row">
+        <!-- Product Images -->
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <img 
+                    src="{{ asset(product.mainImage ?? 'assets/images/placeholder.png') }}" 
+                    alt="{{ product.name }}"
+                    class="card-img-top"
+                    style="height: 400px; object-fit: cover;"
+                    id="mainImage"
+                >
+            </div>
+            {% if product.images|length > 0 %}
+                <div class="d-flex gap-2 mt-3 overflow-auto">
+                    <div 
+                        class="border rounded p-1 cursor-pointer thumbnail-img active" 
+                        onclick="changeImage('{{ asset(product.mainImage ?? 'assets/images/placeholder.png') }}', this)"
+                        style="cursor: pointer;"
+                    >
+                        <img src="{{ asset(product.mainImage ?? 'assets/images/placeholder.png') }}" width="60" height="60" style="object-fit: cover;">
+                    </div>
+                    {% for image in product.images %}
+                        <div 
+                            class="border rounded p-1 thumbnail-img" 
+                            onclick="changeImage('{{ asset(image) }}', this)"
+                            style="cursor: pointer;"
+                        >
+                            <img src="{{ asset(image) }}" width="60" height="60" style="object-fit: cover;">
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+        
+        <!-- Product Details -->
+        <div class="col-lg-6">
+            <div class="mb-2">
+                <a href="{{ path('shop_category', {slug: product.category.slug}) }}" class="text-decoration-none text-muted" style="font-size: 0.8125rem;">
+                    {{ product.category.name }}
+                </a>
+            </div>
+            
+            <h1 class="h3 mb-2">{{ product.name }}</h1>
+            
+            {% if product.brand %}
+                <p class="text-muted mb-3">Brand: <strong>{{ product.brand }}</strong></p>
+            {% endif %}
+            
+            {% if product.requiresAgeVerification %}
+                <div class="alert alert-warning d-flex align-items-center mb-3" style="font-size: 0.8125rem;">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    <span>This product requires age verification (21+) before purchase.</span>
+                </div>
+            {% endif %}
+            
+            <div class="mb-4">
+                <span class="h3 fw-bold" id="variantPrice">₱{{ product.basePrice|number_format(2) }}</span>
+                {% if product.totalStock > 0 %}
+                    <span class="badge bg-success ms-2">In Stock</span>
+                {% else %}
+                    <span class="badge bg-danger ms-2">Out of Stock</span>
+                {% endif %}
+            </div>
+            
+            {% if product.shortDescription %}
+                <p class="text-muted mb-4">{{ product.shortDescription }}</p>
+            {% endif %}
+            
+            <!-- Variant Selection -->
+            <form id="addToCartForm">
+                {% if variants|length > 1 %}
+                    <div class="mb-3">
+                        <label class="form-label fw-medium">Select Variant</label>
+                        <select class="form-select" id="variantSelect" name="variant_id" required>
+                            {% for variant in variants %}
+                                <option 
+                                    value="{{ variant.id }}" 
+                                    data-price="{{ variant.price }}"
+                                    data-stock="{{ variant.availableStock }}"
+                                    {{ variant.availableStock <= 0 ? 'disabled' : '' }}
+                                >
+                                    {{ variant.variantAttributes ?: 'Default' }} 
+                                    - ₱{{ variant.price|number_format(2) }}
+                                    {{ variant.availableStock <= 0 ? '(Out of Stock)' : '' }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                {% else %}
+                    <input type="hidden" name="variant_id" value="{{ variants[0].id|default('') }}">
+                {% endif %}
+                
+                <div class="mb-4">
+                    <label class="form-label fw-medium">Quantity</label>
+                    <div class="input-group" style="max-width: 140px;">
+                        <button type="button" class="btn btn-outline-secondary" onclick="changeQty(-1)">-</button>
+                        <input type="number" class="form-control text-center" id="quantity" name="quantity" value="1" min="1" max="10">
+                        <button type="button" class="btn btn-outline-secondary" onclick="changeQty(1)">+</button>
+                    </div>
+                </div>
+                
+                <div class="d-grid gap-2">
+                    {% if variants|length > 0 and product.totalStock > 0 %}
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="bi bi-bag-plus me-2"></i>Add to Cart
+                        </button>
+                    {% else %}
+                        <button type="button" class="btn btn-secondary btn-lg" disabled>
+                            <i class="bi bi-x-circle me-2"></i>Out of Stock
+                        </button>
+                    {% endif %}
+                </div>
+            </form>
+            
+            <!-- Product Info Tabs -->
+            <div class="mt-4 pt-4 border-top">
+                <ul class="nav nav-tabs" role="tablist">
+                    <li class="nav-item">
+                        <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#description">Description</button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#details">Details</button>
+                    </li>
+                </ul>
+                <div class="tab-content pt-3">
+                    <div class="tab-pane fade show active" id="description">
+                        {{ product.description|raw|default('No description available.') }}
+                    </div>
+                    <div class="tab-pane fade" id="details">
+                        <table class="table table-sm">
+                            <tr><th style="width: 150px;">SKU</th><td>{{ product.sku }}</td></tr>
+                            <tr><th>Category</th><td>{{ product.category.name }}</td></tr>
+                            {% if product.brand %}<tr><th>Brand</th><td>{{ product.brand }}</td></tr>{% endif %}
+                            <tr><th>Age Restricted</th><td>{{ product.requiresAgeVerification ? 'Yes (21+)' : 'No' }}</td></tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Related Products -->
+    {% if related_products|length > 0 %}
+        <div class="mt-5 pt-5 border-top">
+            <h4 class="mb-4">Related Products</h4>
+            <div class="row g-3">
+                {% for product in related_products %}
+                    <div class="col-md-6 col-lg-3">
+                        {% include 'shop/_product_card.html.twig' %}
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<script>
+function changeImage(src, el) {
+    document.getElementById('mainImage').src = src;
+    document.querySelectorAll('.thumbnail-img').forEach(t => t.classList.remove('active', 'border-primary'));
+    el.classList.add('active', 'border-primary');
+}
+
+function changeQty(delta) {
+    const input = document.getElementById('quantity');
+    const newVal = Math.max(1, Math.min(10, parseInt(input.value) + delta));
+    input.value = newVal;
+}
+
+document.getElementById('variantSelect')?.addEventListener('change', function() {
+    const selected = this.options[this.selectedIndex];
+    const price = selected.dataset.price;
+    document.getElementById('variantPrice').textContent = '₱' + parseFloat(price).toLocaleString('en-PH', {minimumFractionDigits: 2});
+});
+
+document.getElementById('addToCartForm')?.addEventListener('submit', function(e) {
+    e.preventDefault();
+    const variantId = this.querySelector('[name="variant_id"]').value;
+    const quantity = this.querySelector('[name="quantity"]').value;
+    
+    fetch('{{ path("cart_add") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({ variant_id: variantId, quantity: parseInt(quantity) })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            // Update mini cart
+            document.getElementById('miniCartDropdown').innerHTML = data.cart_html;
+            // Update badge
+            let badge = document.getElementById('cartBadge');
+            if (data.cart_count > 0) {
+                if (!badge) {
+                    badge = document.createElement('span');
+                    badge.id = 'cartBadge';
+                    badge.className = 'cart-badge';
+                    document.getElementById('cartDropdownBtn').appendChild(badge);
+                }
+                badge.textContent = data.cart_count;
+            }
+            // Show success message
+            showToast('Product added to cart!', 'success');
+        } else {
+            showToast(data.error || 'Error adding to cart', 'danger');
+        }
+    })
+    .catch(() => showToast('Error adding to cart', 'danger'));
+});
+
+function showToast(message, type) {
+    const toast = document.createElement('div');
+    toast.className = `alert alert-${type} position-fixed`;
+    toast.style.cssText = 'top: 80px; right: 20px; z-index: 9999; min-width: 250px;';
+    toast.innerHTML = message;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+}
+</script>
+{% endblock %}

@@ -1,0 +1,265 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block body %}
+{% set pendingOrders = (order_summary.pending ?? 0) + (order_summary.awaiting_payment ?? 0) %}
+{% set pipelineOrders = (order_summary.pending ?? 0) + (order_summary.awaiting_payment ?? 0) + (order_summary.paid ?? 0) + (order_summary.processing ?? 0) + (order_summary.ready_to_ship ?? 0) + (order_summary.shipped ?? 0) %}
+{% set maxRegionalRevenue = 0 %}
+{% for sale in regional_sales %}
+    {% set maxRegionalRevenue = max(maxRegionalRevenue, sale.totalRevenue|default(0)) %}
+{% endfor %}
+
+<div class="page-header d-flex justify-content-between align-items-center">
+    <h1>Dashboard</h1>
+    <a href="{{ path('admin_orders') }}" class="btn btn-outline-primary btn-sm btn-icon" title="View orders" aria-label="View orders">
+        <i class="bi bi-eye" aria-hidden="true"></i>
+        <span class="visually-hidden">View Orders</span>
+    </a>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-xl-3 col-md-6">
+        <div class="card stat-card">
+            <div class="stat-label mb-1">Month Revenue</div>
+            <div class="stat-value">₱{{ month_revenue|number_format(2) }}</div>
+            <small class="text-muted">Today: ₱{{ today_revenue|number_format(2) }}</small>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="card stat-card">
+            <div class="stat-label mb-1">Orders in Pipeline</div>
+            <div class="stat-value">{{ pipelineOrders }}</div>
+            <small class="text-muted">Active order flow statuses</small>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="card stat-card">
+            <div class="stat-label mb-1">Customers</div>
+            <div class="stat-value">{{ customer_count }}</div>
+            <small class="text-muted">Registered customer accounts</small>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="card stat-card">
+            <div class="stat-label mb-1">Needs Attention</div>
+            <div class="stat-value">{{ pendingOrders + (pending_verifications|length) }}</div>
+            <small class="text-warning">{{ pendingOrders }} pending orders, {{ pending_verifications|length }} verifications</small>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Recent Orders</h5>
+                <a href="{{ path('admin_orders') }}" class="btn btn-sm btn-outline-primary btn-icon" title="View all orders" aria-label="View all orders">
+                    <i class="bi bi-list" aria-hidden="true"></i>
+                    <span class="visually-hidden">View All</span>
+                </a>
+            </div>
+            <div class="card-body p-0">
+                <table class="table mb-0">
+                    <thead>
+                        <tr>
+                            <th>Order</th>
+                            <th>Customer</th>
+                            <th>Total</th>
+                            <th>Payment</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in recent_orders %}
+                            {% set statusClass = {
+                                'pending': 'warning',
+                                'awaiting_verification': 'warning',
+                                'verified': 'info',
+                                'awaiting_payment': 'secondary',
+                                'paid': 'primary',
+                                'processing': 'info',
+                                'ready_to_ship': 'primary',
+                                'shipped': 'dark',
+                                'delivered': 'success',
+                                'cancelled': 'danger',
+                                'refunded': 'secondary'
+                            } %}
+                            {% set payment = order.successfulPayment %}
+                            <tr>
+                                <td>
+                                    <a class="fw-medium text-decoration-none" href="{{ path('admin_orders_show', {id: order.id}) }}">
+                                        #{{ order.orderNumber }}
+                                    </a>
+                                </td>
+                                <td>{{ order.user.fullName }}</td>
+                                <td>₱{{ order.total|number_format(2) }}</td>
+                                <td>
+                                    {% if payment %}
+                                        <span class="badge bg-success">{{ payment.gatewayLabel }}</span>
+                                    {% elseif order.payments|length > 0 %}
+                                        <span class="badge bg-secondary">{{ order.payments|first.gatewayLabel }}</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">N/A</span>
+                                    {% endif %}
+                                </td>
+                                <td><span class="badge bg-{{ statusClass[order.status] ?? 'secondary' }}">{{ order.statusLabel }}</span></td>
+                            </tr>
+                        {% else %}
+                            <tr>
+                                <td colspan="5" class="text-center text-muted py-4">No recent orders found.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card mb-4">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Low Stock</h5>
+            </div>
+            <div class="card-body">
+                {% for variant in low_stock_variants %}
+                    <div class="d-flex justify-content-between align-items-center {{ not loop.last ? 'mb-3 pb-3 border-bottom' : '' }}">
+                        <div class="d-flex align-items-center">
+                            <img
+                                src="{{ asset(variant.product.mainImage ?? 'assets/images/lilac-prod-300x300.png') }}"
+                                alt="{{ variant.product.name }}"
+                                width="36"
+                                height="36"
+                                class="rounded me-2"
+                                style="object-fit: cover;"
+                            >
+                            <div>
+                                <div class="fw-medium" style="font-size: 0.8125rem;">{{ variant.product.name }}</div>
+                                <small class="text-muted">{{ variant.variantAttributes ?: 'Default variant' }}</small>
+                            </div>
+                        </div>
+                        <span class="badge {{ variant.availableStock <= 0 ? 'bg-danger' : 'bg-warning text-dark' }}">{{ variant.availableStock }} left</span>
+                    </div>
+                {% else %}
+                    <p class="text-muted mb-0">No low stock variants.</p>
+                {% endfor %}
+            </div>
+            <div class="card-footer bg-white" style="border-top: 1px solid var(--color-border);">
+                <a href="{{ path('admin_inventory', {filter: 'low'}) }}" class="btn btn-sm btn-outline-primary btn-icon" title="Manage inventory" aria-label="Manage inventory">
+                    <i class="bi bi-boxes" aria-hidden="true"></i>
+                    <span class="visually-hidden">Manage Inventory</span>
+                </a>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Verification Queue</h5>
+                <a href="{{ path('admin_customers', {status: 'pending'}) }}" class="btn btn-sm btn-outline-primary btn-icon" title="View pending verifications" aria-label="View pending verifications">
+                    <i class="bi bi-eye" aria-hidden="true"></i>
+                    <span class="visually-hidden">View</span>
+                </a>
+            </div>
+            <div class="card-body">
+                {% for verification in pending_verifications %}
+                    <div class="d-flex justify-content-between align-items-center {{ not loop.last ? 'mb-3 pb-3 border-bottom' : '' }}">
+                        <div>
+                            <div class="fw-medium" style="font-size: 0.8125rem;">{{ verification.user.fullName }}</div>
+                            <small class="text-muted">{{ verification.createdAt|date('M j, Y g:i A') }}</small>
+                        </div>
+                        <div class="d-flex gap-1">
+                            <form method="post" action="{{ path('admin_customers_verify', {id: verification.user.id}) }}">
+                                <input type="hidden" name="action" value="approve">
+                                <button type="submit" class="btn btn-sm btn-outline-success btn-icon" title="Approve verification" aria-label="Approve verification">
+                                    <i class="bi bi-check-lg" aria-hidden="true"></i>
+                                    <span class="visually-hidden">Approve</span>
+                                </button>
+                            </form>
+                            <form method="post" action="{{ path('admin_customers_verify', {id: verification.user.id}) }}">
+                                <input type="hidden" name="action" value="reject">
+                                <input type="hidden" name="reason" value="Rejected from dashboard queue">
+                                <button type="submit" class="btn btn-sm btn-outline-danger btn-icon" title="Reject verification" aria-label="Reject verification">
+                                    <i class="bi bi-x-lg" aria-hidden="true"></i>
+                                    <span class="visually-hidden">Reject</span>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                {% else %}
+                    <p class="text-muted mb-0">No pending verifications.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mt-2">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Sales by Region</h5>
+            </div>
+            <div class="card-body">
+                {% for sale in regional_sales %}
+                    {% set pct = maxRegionalRevenue > 0 ? ((sale.totalRevenue / maxRegionalRevenue) * 100) : 0 %}
+                    <div class="{{ not loop.last ? 'mb-3' : '' }}">
+                        <div class="d-flex justify-content-between mb-1" style="font-size: 0.8125rem;">
+                            <span>{{ sale.region ? sale.region|replace({'_': ' '})|title : 'Unknown' }}</span>
+                            <span class="fw-medium">₱{{ sale.totalRevenue|number_format(2) }}</span>
+                        </div>
+                        <div class="progress" title="{{ sale.orderCount }} order(s)">
+                            <div class="progress-bar" style="width: {{ pct|round(1) }}%;"></div>
+                        </div>
+                    </div>
+                {% else %}
+                    <p class="text-muted mb-0">No regional sales data for this period.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Order Pipeline</h5>
+            </div>
+            <div class="card-body p-0">
+                <table class="table mb-0">
+                    <thead>
+                        <tr>
+                            <th>Status</th>
+                            <th class="text-end">Count</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Pending</td>
+                            <td class="text-end">{{ order_summary.pending ?? 0 }}</td>
+                        </tr>
+                        <tr>
+                            <td>Awaiting Payment</td>
+                            <td class="text-end">{{ order_summary.awaiting_payment ?? 0 }}</td>
+                        </tr>
+                        <tr>
+                            <td>Paid</td>
+                            <td class="text-end">{{ order_summary.paid ?? 0 }}</td>
+                        </tr>
+                        <tr>
+                            <td>Processing</td>
+                            <td class="text-end">{{ order_summary.processing ?? 0 }}</td>
+                        </tr>
+                        <tr>
+                            <td>Ready to Ship</td>
+                            <td class="text-end">{{ order_summary.ready_to_ship ?? 0 }}</td>
+                        </tr>
+                        <tr>
+                            <td>Shipped</td>
+                            <td class="text-end">{{ order_summary.shipped ?? 0 }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

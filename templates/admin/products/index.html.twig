@@ -1,0 +1,154 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}Products{% endblock %}
+{% block breadcrumb %}Catalog / Products{% endblock %}
+
+{% block body %}
+<div class="page-header d-flex justify-content-between align-items-center">
+    <h1>Products Management</h1>
+    <a href="{{ path('admin_products_new') }}" class="btn btn-primary btn-icon" title="Add new product" aria-label="Add new product">
+        <i class="bi bi-plus-lg" aria-hidden="true"></i>
+        <span class="visually-hidden">Add New Product</span>
+    </a>
+</div>
+
+<!-- Filters -->
+<div class="card mb-4">
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-4">
+                <div class="input-group">
+                    <span class="input-group-text">Search</span>
+                    <input type="text" class="form-control" placeholder="Search products...">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <select class="form-select">
+                    <option value="">All Categories</option>
+                    {% for category in categories %}
+                        <option value="{{ category.id }}">{{ category.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select class="form-select">
+                    <option value="">Stock Status</option>
+                    <option>In Stock</option>
+                    <option>Low Stock</option>
+                    <option>Out of Stock</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select class="form-select">
+                    <option value="">Status</option>
+                    <option>Active</option>
+                    <option>Inactive</option>
+                </select>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Products Table -->
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 40px;">
+                            <input type="checkbox" class="form-check-input">
+                        </th>
+                        <th>Product</th>
+                        <th>SKU</th>
+                        <th>Category</th>
+                        <th>Variants</th>
+                        <th>Price</th>
+                        <th>Stock</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for product in products %}
+                    {% set totalStock = 0 %}
+                    {% for variant in product.variants %}
+                        {% set totalStock = totalStock + variant.stock %}
+                    {% endfor %}
+                    <tr>
+                        <td><input type="checkbox" class="form-check-input"></td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <img src="{{ asset(product.mainImage ?? 'images/lilac-prod-300x300.png') }}" width="48" height="48" class="rounded me-3">
+                                <div>
+                                    <div class="fw-medium">{{ product.name }}</div>
+                                    <small class="text-muted">{{ product.shortDescription ?? '' }}</small>
+                                </div>
+                            </div>
+                        </td>
+                        <td><code>{{ product.sku }}</code></td>
+                        <td>{{ product.category ? product.category.name : 'Uncategorized' }}</td>
+                        <td>
+                            {% for variant in product.variants|slice(0, 3) %}
+                                <span class="badge bg-light text-dark me-1">{{ variant.nicotineStrength ?? variant.flavor }}</span>
+                            {% endfor %}
+                            {% if product.variants|length > 3 %}
+                                <span class="badge bg-light text-dark">+{{ product.variants|length - 3 }}</span>
+                            {% endif %}
+                        </td>
+                        <td>₱{{ product.basePrice|number_format(2) }}</td>
+                        <td>
+                            {% if totalStock == 0 %}
+                                <span class="badge bg-danger">0</span>
+                            {% elseif totalStock <= 10 %}
+                                <span class="badge bg-warning text-dark">{{ totalStock }}</span>
+                            {% else %}
+                                <span class="badge bg-success">{{ totalStock }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if not product.isActive %}
+                                <span class="badge bg-secondary">Inactive</span>
+                            {% elseif totalStock == 0 %}
+                                <span class="badge bg-danger">Out of Stock</span>
+                            {% else %}
+                                <span class="badge bg-success">Active</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="d-flex gap-1">
+                                <a href="{{ path('admin_products_edit', {id: product.id}) }}" class="btn btn-sm btn-outline-primary btn-icon" title="Edit product" aria-label="Edit product">
+                                    <i class="bi bi-pencil-square" aria-hidden="true"></i>
+                                    <span class="visually-hidden">Edit</span>
+                                </a>
+                                <form action="{{ path('admin_products_toggle', {id: product.id}) }}" method="post" class="d-inline">
+                                    <button type="submit" class="btn btn-sm btn-outline-{{ product.isActive ? 'warning' : 'success' }} btn-icon" title="{{ product.isActive ? 'Disable product' : 'Enable product' }}" aria-label="{{ product.isActive ? 'Disable product' : 'Enable product' }}">
+                                        <i class="bi {{ product.isActive ? 'bi-toggle-off' : 'bi-toggle-on' }}" aria-hidden="true"></i>
+                                        <span class="visually-hidden">{{ product.isActive ? 'Disable' : 'Enable' }}</span>
+                                    </button>
+                                </form>
+                                <form action="{{ path('admin_products_delete', {id: product.id}) }}" method="post" class="d-inline" onsubmit="return confirm('Delete this product?');">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger btn-icon" title="Delete product" aria-label="Delete product">
+                                        <i class="bi bi-trash" aria-hidden="true"></i>
+                                        <span class="visually-hidden">Delete</span>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="9" class="text-center py-4 text-muted">No products found. <a href="{{ path('admin_products_new') }}">Add your first product</a>.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="card-footer bg-white d-flex justify-content-between align-items-center">
+        <div class="text-muted">
+            Showing {{ products|length }} product(s)
+        </div>
+    </div>
+</div>
+{% endblock %}

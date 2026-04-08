@@ -1,0 +1,155 @@
+{% extends 'staff/base.html.twig' %}
+
+{% block title %}Staff Dashboard{% endblock %}
+
+{% block body %}
+<div class="page-header d-flex justify-content-between align-items-center">
+    <h1>Dashboard</h1>
+    <span class="badge" style="background: var(--color-accent-light); color: var(--color-accent); font-size: 0.75rem;">Live Data</span>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card stat-card">
+            <div class="stat-value" style="color: #f59e0b;">{{ summary.pending }}</div>
+            <div class="stat-label">Pending</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card">
+            <div class="stat-value" style="color: #3b82f6;">{{ summary.in_progress }}</div>
+            <div class="stat-label">In Progress</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card">
+            <div class="stat-value" style="color: var(--color-accent);">{{ summary.ready_to_ship }}</div>
+            <div class="stat-label">Ready to Ship</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card">
+            <div class="stat-value" style="color: #6366f1;">{{ summary.shipped_today }}</div>
+            <div class="stat-label">Shipped Today</div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card mb-4">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Priority Orders</h5>
+                <a href="{{ path('staff_orders') }}" class="btn btn-sm btn-outline-primary">View All</a>
+            </div>
+            <div class="card-body">
+                {% for order in priority_orders %}
+                    {% set queueTime = order.paidAt ?? order.createdAt %}
+                    {% set payment = order.successfulPayment %}
+                    {% set statusClasses = {
+                        'paid': 'bg-warning text-dark',
+                        'processing': 'bg-info text-dark',
+                        'ready_to_ship': 'bg-primary',
+                        'shipped': 'bg-success'
+                    } %}
+                    <div class="card order-card {{ order.status == 'paid' ? 'ready' : '' }}" style="{{ loop.last ? 'margin-bottom: 0;' : '' }}">
+                        <div class="card-body py-2 px-3">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <span class="order-id">#{{ order.orderNumber ?? ('ORD-' ~ order.id) }}</span>
+                                    <span class="badge {{ statusClasses[order.status] ?? 'bg-secondary' }} ms-2" style="font-size: 0.625rem;">{{ order.statusLabel }}</span>
+                                </div>
+                                <a href="{{ path('staff_orders_fulfill', {id: order.id}) }}" class="btn btn-sm btn-primary">Fulfill</a>
+                            </div>
+                            <div class="row mt-2" style="font-size: 0.8125rem;">
+                                <div class="col-4">
+                                    <small class="text-muted d-block">Customer</small>
+                                    {{ order.user ? order.user.fullName : 'Unknown' }}
+                                </div>
+                                <div class="col-4">
+                                    <small class="text-muted d-block">Payment</small>
+                                    <span class="badge" style="background: #e5e7eb; color: #111827;">{{ payment ? payment.gatewayLabel : 'N/A' }}</span>
+                                    ₱{{ order.total|number_format(2, '.', ',') }}
+                                </div>
+                                <div class="col-4">
+                                    <small class="text-muted d-block">Queued</small>
+                                    {{ queueTime ? queueTime|date('M j, g:i A') : 'N/A' }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% else %}
+                    <p class="text-muted mb-0">No orders currently waiting for fulfillment.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card mb-3">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Quick Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{{ path('staff_orders') }}" class="btn btn-primary">Process Next Order</a>
+                    <a href="{{ path('staff_orders_ready') }}" class="btn btn-outline-secondary">Open Ready to Ship</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Ready to Ship</h5>
+                <span class="badge" style="background: var(--color-accent); color: #fff;">{{ summary.ready_to_ship }}</span>
+            </div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush" style="font-size: 0.8125rem;">
+                    {% for order in ready_to_ship_orders %}
+                        {% set shipment = order.shipment %}
+                        <div class="list-group-item d-flex justify-content-between align-items-center py-2">
+                            <div>
+                                <div class="fw-medium">#{{ order.orderNumber ?? ('ORD-' ~ order.id) }}</div>
+                                <small class="text-muted">
+                                    {{ order.user ? order.user.fullName : 'Unknown' }}
+                                    {% if order.shippingAddress %}• {{ order.shippingAddress.regionLabel }}{% endif %}
+                                </small>
+                            </div>
+                            <a href="{{ path('staff_orders_fulfill', {id: order.id}) }}" class="btn btn-sm" style="background: var(--color-accent); color: #fff;">Open</a>
+                        </div>
+                    {% else %}
+                        <div class="list-group-item py-3 text-muted">No orders are ready to ship.</div>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="card-footer bg-white" style="border-top: 1px solid var(--color-border);">
+                <a href="{{ path('staff_orders_ready') }}" class="btn btn-sm btn-outline-primary w-100">View All</a>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Queue Snapshot</h5>
+            </div>
+            <div class="card-body" style="font-size: 0.8125rem;">
+                <div class="d-flex justify-content-between mb-2 pb-2" style="border-bottom: 1px solid var(--color-border);">
+                    <span class="text-muted">Total in Queue</span>
+                    <strong>{{ summary.total_queue }}</strong>
+                </div>
+                <div class="d-flex justify-content-between mb-2 pb-2" style="border-bottom: 1px solid var(--color-border);">
+                    <span class="text-muted">Ready to Ship</span>
+                    <strong>{{ summary.ready_to_ship }}</strong>
+                </div>
+                <div class="d-flex justify-content-between mb-2 pb-2" style="border-bottom: 1px solid var(--color-border);">
+                    <span class="text-muted">Refunded Orders</span>
+                    <strong>{{ summary.refunded }}</strong>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span class="text-muted">Shipped Today</span>
+                    <strong>{{ summary.shipped_today }}</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

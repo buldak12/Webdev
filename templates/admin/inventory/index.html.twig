@@ -1,0 +1,376 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}Inventory{% endblock %}
+{% block breadcrumb %}Catalog / Inventory{% endblock %}
+
+{% block body %}
+{% set totalSkuCount = 0 %}
+{% set totalStockValue = 0 %}
+{% set totalReserved = 0 %}
+{% set categoryOptions = [] %}
+
+{% for product in products %}
+    {% for variant in product.activeVariants %}
+        {% set totalSkuCount = totalSkuCount + 1 %}
+        {% set totalStockValue = totalStockValue + (variant.stock * variant.price) %}
+    {% endfor %}
+{% endfor %}
+
+{% for variant in variants %}
+    {% set totalReserved = totalReserved + variant.reservedStock %}
+    {% set categoryName = variant.product.category ? variant.product.category.name : 'Uncategorized' %}
+    {% if categoryName not in categoryOptions %}
+        {% set categoryOptions = categoryOptions|merge([categoryName]) %}
+    {% endif %}
+{% endfor %}
+
+{% set healthyCount = totalSkuCount - summary.low_stock_count %}
+{% if healthyCount < 0 %}
+    {% set healthyCount = 0 %}
+{% endif %}
+{% set healthPct = totalSkuCount > 0 ? ((healthyCount / totalSkuCount) * 100) : 0 %}
+
+<style>
+    .inventory-stat {
+        border: 1px solid var(--color-border);
+        border-radius: 0.75rem;
+        padding: 1rem;
+        background: #fff;
+        height: 100%;
+    }
+
+    .inventory-stat-icon {
+        width: 2rem;
+        height: 2rem;
+        border-radius: 0.5rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.95rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .inventory-toolbar .form-label {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--color-text-muted);
+        margin-bottom: 0.35rem;
+    }
+
+    .inventory-row .variant-meta {
+        font-size: 0.72rem;
+        color: var(--color-text-muted);
+    }
+
+    .inventory-health-bar {
+        min-width: 90px;
+    }
+
+    .inventory-counter {
+        font-size: 0.78rem;
+        color: var(--color-text-muted);
+    }
+</style>
+
+<div class="page-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <div>
+        <h1>Inventory Management</h1>
+        <div class="inventory-counter">Realtime stock overview with quick adjustments and threshold controls.</div>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ path('admin_products') }}" class="btn btn-outline-secondary btn-icon" title="Manage products" aria-label="Manage products">
+            <i class="bi bi-boxes" aria-hidden="true"></i>
+            <span class="visually-hidden">Manage Products</span>
+        </a>
+        <a href="{{ path('admin_inventory', {filter: 'low'}) }}" class="btn btn-outline-primary btn-icon" title="View low stock" aria-label="View low stock">
+            <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
+            <span class="visually-hidden">View Low Stock</span>
+        </a>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="inventory-stat">
+            <div class="inventory-stat-icon" style="background: #eef2ff; color: #3730a3;">
+                <i class="bi bi-upc-scan"></i>
+            </div>
+            <div class="h4 mb-0">{{ totalSkuCount }}</div>
+            <small class="text-muted">Total Active SKUs</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="inventory-stat" style="border-color: #fecaca;">
+            <div class="inventory-stat-icon" style="background: #fee2e2; color: #991b1b;">
+                <i class="bi bi-x-octagon"></i>
+            </div>
+            <div class="h4 mb-0 text-danger">{{ summary.out_of_stock_count }}</div>
+            <small class="text-muted">Out of Stock</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="inventory-stat" style="border-color: #fde68a;">
+            <div class="inventory-stat-icon" style="background: #fef3c7; color: #92400e;">
+                <i class="bi bi-exclamation-diamond"></i>
+            </div>
+            <div class="h4 mb-0 text-warning">{{ summary.low_stock_count }}</div>
+            <small class="text-muted">Low Stock Alerts</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="inventory-stat">
+            <div class="inventory-stat-icon" style="background: #dcfce7; color: #166534;">
+                <i class="bi bi-cash-stack"></i>
+            </div>
+            <div class="h4 mb-0 text-success">₱{{ totalStockValue|number_format(2) }}</div>
+            <small class="text-muted">Estimated Stock Value</small>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3 align-items-end inventory-toolbar">
+            <div class="col-lg-2 col-md-3">
+                <label class="form-label">Server Filter</label>
+                <select class="form-select" name="filter" onchange="this.form.submit()">
+                    <option value="" {{ current_filter is empty ? 'selected' : '' }}>All</option>
+                    <option value="out" {{ current_filter == 'out' ? 'selected' : '' }}>Out of Stock</option>
+                    <option value="low" {{ current_filter == 'low' ? 'selected' : '' }}>Low Stock</option>
+                </select>
+            </div>
+            <div class="col-lg-3 col-md-4">
+                <label class="form-label">Search</label>
+                <input type="text" id="inventorySearch" class="form-control" placeholder="Name, variant, SKU...">
+            </div>
+            <div class="col-lg-2 col-md-3">
+                <label class="form-label">Category</label>
+                <select class="form-select" id="inventoryCategory">
+                    <option value="">All Categories</option>
+                    {% for categoryName in categoryOptions|sort %}
+                        <option value="{{ categoryName|lower }}">{{ categoryName }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-lg-2 col-md-3">
+                <label class="form-label">Stock Health</label>
+                <select class="form-select" id="inventoryState">
+                    <option value="">All</option>
+                    <option value="healthy">Healthy</option>
+                    <option value="low">Low</option>
+                    <option value="out">Out</option>
+                </select>
+            </div>
+            <div class="col-lg-2 col-md-3">
+                <label class="form-label">Overview</label>
+                <div class="progress" title="Healthy stock coverage">
+                    <div class="progress-bar bg-success" style="width: {{ healthPct|round(0) }}%;"></div>
+                </div>
+                <small class="text-muted">{{ healthyCount }} healthy / {{ totalSkuCount }} total</small>
+            </div>
+            <div class="col-lg-1 col-md-2 d-flex justify-content-end">
+                <button type="button" id="inventoryResetFilters" class="btn btn-outline-secondary btn-icon" title="Reset client filters" aria-label="Reset client filters">
+                    <i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i>
+                    <span class="visually-hidden">Reset Filters</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if summary.low_stock_count > 0 or summary.out_of_stock_count > 0 %}
+    <div class="alert alert-warning d-flex align-items-center mb-4">
+        <span class="me-2"><strong>Alert:</strong></span>
+        <div>
+            {{ summary.low_stock_count }} low-stock and {{ summary.out_of_stock_count }} out-of-stock variant(s) need attention.
+            <a href="{{ path('admin_inventory', {filter: 'low'}) }}" class="alert-link">Focus low stock</a>
+        </div>
+    </div>
+{% else %}
+    <div class="alert alert-success d-flex align-items-center mb-4">
+        <span class="me-2"><strong>Healthy:</strong></span>
+        <div>All tracked variants are above low-stock threshold.</div>
+    </div>
+{% endif %}
+
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" id="inventoryTable">
+                <thead class="table-light">
+                    <tr>
+                        <th>Product / Variant</th>
+                        <th>SKU</th>
+                        <th>Category</th>
+                        <th class="text-center">Current</th>
+                        <th class="text-center">Reserved</th>
+                        <th class="text-center">Available</th>
+                        <th>Health</th>
+                        <th>Low Stock Alert</th>
+                        <th>Unit Price</th>
+                        <th>Stock Value</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for variant in variants %}
+                        {% set available = variant.availableStock %}
+                        {% set state = available <= 0 ? 'out' : (variant.lowStock ? 'low' : 'healthy') %}
+                        {% set rowClass = state == 'out' ? 'table-danger' : (state == 'low' ? 'table-warning' : '') %}
+                        {% set categoryName = variant.product.category ? variant.product.category.name : 'Uncategorized' %}
+                        {% set thresholdBase = variant.lowStockThreshold > 0 ? variant.lowStockThreshold : 1 %}
+                        {% set healthRatio = (available / thresholdBase) * 100 %}
+                        {% if healthRatio > 100 %}
+                            {% set healthRatio = 100 %}
+                        {% endif %}
+                        {% if healthRatio < 0 %}
+                            {% set healthRatio = 0 %}
+                        {% endif %}
+
+                        <tr
+                            class="inventory-row {{ rowClass }}"
+                            data-search="{{ (variant.product.name ~ ' ' ~ (variant.variantAttributes ?: '') ~ ' ' ~ variant.sku)|lower }}"
+                            data-category="{{ categoryName|lower }}"
+                            data-state="{{ state }}"
+                        >
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <img src="{{ asset(variant.product.mainImage ?? 'assets/images/lilac-prod-300x300.png') }}" width="42" height="42" class="rounded me-2" style="object-fit: cover;">
+                                    <div>
+                                        <div class="fw-medium">{{ variant.product.name }}</div>
+                                        <div class="variant-meta">{{ variant.variantAttributes ?: 'Default variant' }}</div>
+                                        <div class="variant-meta">Updated {{ variant.updatedAt|date('M j, Y g:i A') }}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td><code>{{ variant.sku }}</code></td>
+                            <td>{{ categoryName }}</td>
+                            <td class="text-center">{{ variant.stock }}</td>
+                            <td class="text-center">{{ variant.reservedStock }}</td>
+                            <td class="text-center">
+                                <span class="badge {{ state == 'out' ? 'bg-danger' : (state == 'low' ? 'bg-warning text-dark' : 'bg-success') }}">{{ available }}</span>
+                            </td>
+                            <td class="inventory-health-bar">
+                                <div class="progress" title="Available versus threshold">
+                                    <div class="progress-bar {{ state == 'out' ? 'bg-danger' : (state == 'low' ? 'bg-warning' : 'bg-success') }}" style="width: {{ healthRatio|round(0) }}%;"></div>
+                                </div>
+                                <div class="variant-meta mt-1">Threshold {{ variant.lowStockThreshold }}</div>
+                            </td>
+                            <td>
+                                <form method="post" action="{{ path('admin_inventory_threshold', {id: variant.id}) }}" class="d-flex gap-1 align-items-center">
+                                    <input type="number" class="form-control form-control-sm" style="max-width: 80px;" name="threshold" min="0" value="{{ variant.lowStockThreshold }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-secondary btn-icon" title="Save threshold" aria-label="Save threshold">
+                                        <i class="bi bi-check-lg" aria-hidden="true"></i>
+                                        <span class="visually-hidden">Save Threshold</span>
+                                    </button>
+                                </form>
+                            </td>
+                            <td>₱{{ variant.price|number_format(2) }}</td>
+                            <td>₱{{ (variant.stock * variant.price)|number_format(2) }}</td>
+                            <td>
+                                <div class="d-flex flex-column gap-1">
+                                    <form method="post" action="{{ path('admin_inventory_update', {id: variant.id}) }}" class="d-flex gap-1">
+                                        <input type="hidden" name="action" value="set">
+                                        <input type="number" class="form-control form-control-sm" style="max-width: 78px;" name="quantity" min="0" value="{{ variant.stock }}">
+                                        <button type="submit" class="btn btn-sm btn-outline-primary btn-icon" title="Set stock" aria-label="Set stock">
+                                            <i class="bi bi-sliders" aria-hidden="true"></i>
+                                            <span class="visually-hidden">Set Stock</span>
+                                        </button>
+                                    </form>
+                                    <div class="d-flex gap-1">
+                                        <form method="post" action="{{ path('admin_inventory_update', {id: variant.id}) }}">
+                                            <input type="hidden" name="action" value="add">
+                                            <input type="hidden" name="quantity" value="10">
+                                            <button type="submit" class="btn btn-sm btn-outline-success btn-icon" title="Add 10 stock" aria-label="Add 10 stock">
+                                                <i class="bi bi-plus-lg" aria-hidden="true"></i>
+                                                <span class="visually-hidden">Add 10</span>
+                                            </button>
+                                        </form>
+                                        <form method="post" action="{{ path('admin_inventory_update', {id: variant.id}) }}">
+                                            <input type="hidden" name="action" value="deduct">
+                                            <input type="hidden" name="quantity" value="5">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger btn-icon" title="Deduct 5 stock" aria-label="Deduct 5 stock">
+                                                <i class="bi bi-dash-lg" aria-hidden="true"></i>
+                                                <span class="visually-hidden">Deduct 5</span>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="11" class="text-center py-4 text-muted">No variants found for this filter.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="card-footer bg-white d-flex justify-content-between align-items-center">
+        <div class="text-muted">
+            <span id="inventoryVisibleCount">{{ variants|length }}</span> of {{ variants|length }} variant(s) shown
+        </div>
+        <div class="text-muted">Reserved units: {{ totalReserved }}</div>
+    </div>
+</div>
+
+<script>
+(function () {
+    const searchInput = document.getElementById('inventorySearch');
+    const categorySelect = document.getElementById('inventoryCategory');
+    const stateSelect = document.getElementById('inventoryState');
+    const resetButton = document.getElementById('inventoryResetFilters');
+    const rows = Array.from(document.querySelectorAll('.inventory-row'));
+    const visibleCount = document.getElementById('inventoryVisibleCount');
+
+    function applyFilters() {
+        const search = (searchInput?.value || '').toLowerCase().trim();
+        const category = (categorySelect?.value || '').toLowerCase().trim();
+        const state = (stateSelect?.value || '').toLowerCase().trim();
+        let count = 0;
+
+        rows.forEach((row) => {
+            const rowSearch = row.getAttribute('data-search') || '';
+            const rowCategory = row.getAttribute('data-category') || '';
+            const rowState = row.getAttribute('data-state') || '';
+
+            const matchSearch = !search || rowSearch.includes(search);
+            const matchCategory = !category || rowCategory === category;
+            const matchState = !state || rowState === state;
+            const visible = matchSearch && matchCategory && matchState;
+
+            row.style.display = visible ? '' : 'none';
+            if (visible) {
+                count++;
+            }
+        });
+
+        if (visibleCount) {
+            visibleCount.textContent = String(count);
+        }
+    }
+
+    [searchInput, categorySelect, stateSelect].forEach((element) => {
+        element?.addEventListener('input', applyFilters);
+        element?.addEventListener('change', applyFilters);
+    });
+
+    resetButton?.addEventListener('click', () => {
+        if (searchInput) {
+            searchInput.value = '';
+        }
+        if (categorySelect) {
+            categorySelect.value = '';
+        }
+        if (stateSelect) {
+            stateSelect.value = '';
+        }
+        applyFilters();
+    });
+
+    applyFilters();
+})();
+</script>
+{% endblock %}
