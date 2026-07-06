@@ -1,0 +1,81 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}Activity Logs{% endblock %}
+{% block breadcrumb %}System / Activity Logs{% endblock %}
+
+{% block body %}
+<div class="page-header d-flex justify-content-between align-items-center">
+    <h1>Activity Logs</h1>
+    <span class="badge bg-dark">{{ logs|length }} recent logs</span>
+</div>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-8">
+                <label class="form-label">Search</label>
+                <input type="text" class="form-control" name="q" value="{{ current_query }}" placeholder="Action, route, or actor email">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Method</label>
+                <select class="form-select" name="method">
+                    <option value="" {{ current_method == '' ? 'selected' : '' }}>All</option>
+                    <option value="POST" {{ current_method == 'POST' ? 'selected' : '' }}>POST</option>
+                    <option value="PUT" {{ current_method == 'PUT' ? 'selected' : '' }}>PUT</option>
+                    <option value="PATCH" {{ current_method == 'PATCH' ? 'selected' : '' }}>PATCH</option>
+                    <option value="DELETE" {{ current_method == 'DELETE' ? 'selected' : '' }}>DELETE</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">Apply</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Time</th>
+                        <th>Actor</th>
+                        <th>Method</th>
+                        <th>Action</th>
+                        <th>Route</th>
+                        <th>IP</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in logs %}
+                        <tr>
+                            <td>{{ log.createdAt ? log.createdAt|date('M d, Y H:i:s') : 'N/A' }}</td>
+                            <td>
+                                {% if log.actor %}
+                                    <div class="fw-medium">{{ log.actor.fullName }}</div>
+                                    <small class="text-muted">{{ log.actor.email }}</small>
+                                {% else %}
+                                    <span class="text-muted">System</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-{{ log.method == 'DELETE' ? 'danger' : (log.method == 'PATCH' ? 'warning text-dark' : (log.method == 'PUT' ? 'info text-dark' : 'primary')) }}">
+                                    {{ log.method }}
+                                </span>
+                            </td>
+                            <td>{{ log.action }}</td>
+                            <td><code>{{ log.routeName ?: 'N/A' }}</code></td>
+                            <td>{{ log.ipAddress ?: 'N/A' }}</td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="6" class="text-center py-4 text-muted">No activity logs found.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -305,6 +305,24 @@ class Product
         return $total;
     }
 
+    public function getReservedStock(): int
+    {
+        $reserved = 0;
+        foreach ($this->variants as $variant) {
+            $reserved += $variant->getReservedStock();
+        }
+        return $reserved;
+    }
+
+    public function getAvailableStock(): int
+    {
+        $available = 0;
+        foreach ($this->variants as $variant) {
+            $available += $variant->getAvailableStock();
+        }
+        return $available;
+    }
+
     public function getLowestPrice(): string
     {
         $lowest = $this->basePrice;

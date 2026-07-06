@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Staff Dashboard{% endblock %} - VapeShop Staff</title>
+    <title>{% block title %}Staff Dashboard{% endblock %} - Easy Vape Staff</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     {% block stylesheets %}
@@ -46,11 +46,22 @@
             border-bottom: 1px solid var(--color-border);
         }
         .sidebar-brand h4 {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
             color: var(--color-text);
             margin: 0;
             font-weight: 600;
-            font-size: 0.9375rem;
+            font-size: 0.9rem;
+            line-height: 1;
             letter-spacing: -0.025em;
+        }
+        .sidebar-logo {
+            width: 26px;
+            height: 26px;
+            object-fit: contain;
+            display: block;
+            flex: 0 0 auto;
         }
         .sidebar-brand small {
             color: var(--color-accent);
@@ -229,7 +240,10 @@
     <!-- Sidebar -->
     <nav class="sidebar">
         <div class="sidebar-brand">
-            <h4><i class="bi bi-cloud-haze2 me-2"></i>VapeShop</h4>
+            <h4 class="d-flex align-items-center gap-2 mb-1">
+                <img src="{{ asset('uploads/products/logo.jpg') }}" alt="Easy Vape logo" class="sidebar-logo">
+                <span>Easy Vape</span>
+            </h4>
             <small>Staff Portal</small>
         </div>
         <div class="sidebar-nav">
@@ -247,6 +261,34 @@
             <a href="{{ path('staff_returns') }}" class="nav-link {% if app.request.get('_route') == 'staff_returns' %}active{% endif %}">
                 <i class="bi bi-arrow-return-left"></i> Returns
                 <span class="badge bg-danger">{{ staff_metrics.returns_count|default(0) }}</span>
+            </a>
+
+            <hr style="margin: 1rem; border-color: var(--color-border);">
+
+            <div style="padding: 0 1rem 0.5rem; font-size: 0.65rem; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.08em;">
+                Catalog
+            </div>
+            <a href="{{ path('staff_products') }}" class="nav-link {% if 'staff_products' in app.request.get('_route') or 'admin_products' in app.request.get('_route') %}active{% endif %}">
+                <i class="bi bi-box"></i> Products
+            </a>
+            <a href="{{ path('staff_categories') }}" class="nav-link {% if 'staff_categories' in app.request.get('_route') or 'admin_categories' in app.request.get('_route') %}active{% endif %}">
+                <i class="bi bi-tags"></i> Categories
+            </a>
+            <a href="{{ path('staff_inventory') }}" class="nav-link {% if 'staff_inventory' in app.request.get('_route') or app.request.get('_route') == 'admin_inventory' %}active{% endif %}">
+                <i class="bi bi-clipboard-data"></i> Inventory
+            </a>
+
+            <div style="padding: 1rem 1rem 0.5rem; font-size: 0.65rem; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.08em;">
+                Sales
+            </div>
+            <a href="{{ path('staff_sales_orders') }}" class="nav-link {% if 'staff_sales_orders' in app.request.get('_route') or 'admin_orders' in app.request.get('_route') %}active{% endif %}">
+                <i class="bi bi-receipt"></i> Orders
+            </a>
+            <a href="{{ path('staff_customers') }}" class="nav-link {% if 'staff_customers' in app.request.get('_route') or 'admin_customers' in app.request.get('_route') %}active{% endif %}">
+                <i class="bi bi-people"></i> Customers
+            </a>
+            <a href="{{ path('staff_promos') }}" class="nav-link {% if 'staff_promos' in app.request.get('_route') or 'admin_promos' in app.request.get('_route') %}active{% endif %}">
+                <i class="bi bi-percent"></i> Promos
             </a>
             
             <hr style="margin: 1rem; border-color: var(--color-border);">
@@ -283,6 +325,9 @@
                 <span class="text-muted" style="font-size: 0.75rem;">
                     {{ "now"|date("M j, Y") }}
                 </span>
+                <a href="{{ path('app_logout') }}" class="btn btn-sm btn-outline-danger">
+                    <i class="bi bi-box-arrow-right me-1"></i>Logout
+                </a>
                 <div class="dropdown">
                     <button class="btn btn-sm" style="background: var(--color-accent-light); border: none; color: var(--color-accent);" data-bs-toggle="dropdown">
                         Staff
@@ -290,7 +335,7 @@
                     <ul class="dropdown-menu dropdown-menu-end" style="font-size: 0.8125rem;">
                         <li><a class="dropdown-item" href="#">Profile</a></li>
                         <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="{{ path('app_home') }}">Exit</a></li>
+                        <li><a class="dropdown-item text-danger" href="{{ path('app_logout') }}">Logout</a></li>
                     </ul>
                 </div>
             </div>

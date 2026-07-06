@@ -20,7 +20,8 @@ class CartService
         private EntityManagerInterface $entityManager,
         private CartRepository $cartRepository,
         private PromoCodeRepository $promoCodeRepository,
-        private RequestStack $requestStack
+        private RequestStack $requestStack,
+        private InventoryService $inventoryService
     ) {}
 
     public function getCart(?User $user = null): Cart
@@ -59,9 +60,14 @@ class CartService
         return $cart;
     }
 
-    public function addItem(Cart $cart, ProductVariant $variant, int $quantity = 1): CartItem
+    public function addItem(Cart $cart, ProductVariant $variant, int $quantity = 1, bool $reserveStock = true): CartItem
     {
         $existingItem = $cart->findItemByVariant($variant);
+        $requiredQuantity = $quantity;
+
+        if ($reserveStock && !$this->inventoryService->reserveStock($variant, $requiredQuantity)) {
+            throw new \InvalidArgumentException('Not enough stock available');
+        }
 
         if ($existingItem) {
             $existingItem->incrementQuantity($quantity);
@@ -86,6 +92,17 @@ class CartService
             return;
         }
 
+        $currentQuantity = $item->getQuantity();
+        $delta = $quantity - $currentQuantity;
+
+        if ($delta > 0 && !$this->inventoryService->reserveStock($item->getVariant(), $delta)) {
+            throw new \InvalidArgumentException('Not enough stock available');
+        }
+
+        if ($delta < 0) {
+            $this->inventoryService->releaseReservedStock($item->getVariant(), abs($delta));
+        }
+
         $item->setQuantity($quantity);
         $this->entityManager->flush();
     }
@@ -93,14 +110,26 @@ class CartService
     public function removeItem(CartItem $item): void
     {
         $cart = $item->getCart();
+        if ($item->getVariant()) {
+            $this->inventoryService->releaseReservedStock($item->getVariant(), $item->getQuantity());
+        }
         $cart->removeItem($item);
         $this->entityManager->remove($item);
         $this->entityManager->flush();
     }
 
-    public function clearCart(Cart $cart): void
+    public function clearCart(Cart $cart, bool $releaseReservedStock = true): void
     {
-        $cart->clear();
+        foreach (iterator_to_array($cart->getItems(), false) as $item) {
+            if ($releaseReservedStock && $item->getVariant()) {
+                $this->inventoryService->releaseReservedStock($item->getVariant(), $item->getQuantity());
+            }
+
+            $cart->removeItem($item);
+            $this->entityManager->remove($item);
+        }
+
+        $cart->setPromoCode(null);
         $this->entityManager->flush();
     }
 

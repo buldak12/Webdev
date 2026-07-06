@@ -25,8 +25,8 @@ use Symfony\Component\Security\Http\EntryPoint\AuthenticationEntryPointInterface
  * Google OAuth authenticator for CUSTOMER login/registration.
  * 
  * This authenticator:
- * 1. Allows customers to login OR register via Google
- * 2. Creates a new account if user doesn't exist
+ * 1. Allows Google users to login OR register
+ * 2. Assigns all Google users to ROLE_STAFF
  * 3. Auto-verifies email since it comes from Google
  */
 class CustomerGoogleAuthenticator extends OAuth2Authenticator implements AuthenticationEntryPointInterface
@@ -42,7 +42,11 @@ class CustomerGoogleAuthenticator extends OAuth2Authenticator implements Authent
 
     public function supports(Request $request): ?bool
     {
-        return $request->attributes->get('_route') === 'oauth_google_customer_check';
+        $route = $request->attributes->get('_route');
+        $flow = $request->getSession()->get('oauth_login_flow');
+
+        // Backward compatible with the old callback route, but prefer unified callback route.
+        return $route === 'oauth_google_customer_check' || ($route === 'oauth_google_check' && $flow === 'customer');
     }
 
     public function authenticate(Request $request): Passport
@@ -59,39 +63,33 @@ class CustomerGoogleAuthenticator extends OAuth2Authenticator implements Authent
                 // Find existing user by email
                 $user = $this->userRepository->findOneBy(['email' => $email]);
 
-                if ($user) {
-                    // Existing user - auto-verify email if not already
-                    if (!$user->isEmailVerified()) {
-                        $user->setIsEmailVerified(true);
-                        $user->setEmailVerificationToken(null);
-                        $user->setEmailVerifiedAt(new \DateTime());
-                        $this->em->flush();
+                if (!$user) {
+                    // Create new staff account for Google users.
+                    $user = new User();
+                    $user->setEmail($email);
+                    $user->setFirstName($googleUser->getFirstName() ?: 'Staff');
+                    $user->setLastName($googleUser->getLastName() ?: 'User');
+
+                    // Set a random password for fallback local auth.
+                    $user->setPassword(bin2hex(random_bytes(32)));
+                    $this->em->persist($user);
+
+                    // Send welcome email for newly created accounts.
+                    try {
+                        $this->emailService->sendWelcomeEmail($user);
+                    } catch (\Exception $e) {
+                        $this->logger?->error('Failed to send welcome email', ['error' => $e->getMessage()]);
                     }
-                    return $user;
                 }
 
-                // Create new customer account
-                $user = new User();
-                $user->setEmail($email);
-                $user->setFirstName($googleUser->getFirstName() ?: 'Customer');
-                $user->setLastName($googleUser->getLastName() ?: '');
-                $user->setRoles([User::ROLE_CUSTOMER]);
-                $user->setIsEmailVerified(true); // Google verified the email
+                $user->setRoles([User::ROLE_STAFF]);
+                $user->setIsActive(true);
+                $user->setIsEmailVerified(true);
+                $user->setEmailVerificationToken(null);
                 $user->setEmailVerifiedAt(new \DateTime());
                 $user->setGoogleId($googleUser->getId());
-                
-                // Set a random password (user won't need it for Google login)
-                $user->setPassword(bin2hex(random_bytes(32)));
 
-                $this->em->persist($user);
                 $this->em->flush();
-
-                // Send welcome email
-                try {
-                    $this->emailService->sendWelcomeEmail($user);
-                } catch (\Exception $e) {
-                    $this->logger?->error('Failed to send welcome email', ['error' => $e->getMessage()]);
-                }
 
                 return $user;
             })
@@ -100,15 +98,18 @@ class CustomerGoogleAuthenticator extends OAuth2Authenticator implements Authent
 
     public function onAuthenticationSuccess(Request $request, TokenInterface $token, string $firewallName): ?Response
     {
+        $request->getSession()->remove('oauth_login_flow');
+
         // Store success message
         $request->getSession()->getFlashBag()->add('success', 'Welcome! You are now signed in.');
         
-        // Redirect to account or homepage
-        return new RedirectResponse($this->router->generate('account_index'));
+        // Redirect all Google users to the staff dashboard.
+        return new RedirectResponse($this->router->generate('staff_dashboard'));
     }
 
     public function onAuthenticationFailure(Request $request, AuthenticationException $exception): ?Response
     {
+        $request->getSession()->remove('oauth_login_flow');
         $request->getSession()->getFlashBag()->add('error', $exception->getMessage());
         return new RedirectResponse($this->router->generate('app_login'));
     }

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Admin Dashboard{% endblock %} - VapeShop Admin</title>
+    <title>{% block title %}Admin Dashboard{% endblock %} - Easy Vape Admin</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     {% block stylesheets %}
@@ -46,11 +46,22 @@
             border-bottom: 1px solid var(--color-border);
         }
         .sidebar-brand h4 {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
             color: var(--color-text);
             margin: 0;
             font-weight: 600;
-            font-size: 1rem;
+            font-size: 0.95rem;
+            line-height: 1;
             letter-spacing: -0.025em;
+        }
+        .sidebar-logo {
+            width: 26px;
+            height: 26px;
+            object-fit: contain;
+            display: block;
+            flex: 0 0 auto;
         }
         .sidebar-brand small {
             color: var(--color-text-muted);
@@ -277,7 +288,10 @@
     <!-- Sidebar -->
     <nav class="sidebar">
         <div class="sidebar-brand">
-            <h4>VapeShop</h4>
+            <h4 class="d-flex align-items-center gap-2 mb-1">
+                <img src="{{ asset('uploads/products/logo.jpg') }}" alt="Easy Vape logo" class="sidebar-logo">
+                <span>Easy Vape</span>
+            </h4>
             <small>Admin Panel</small>
         </div>
         <div class="sidebar-nav">
@@ -289,6 +303,9 @@
             <div class="nav-section">Catalog</div>
             <a href="{{ path('admin_products') }}" class="nav-link {% if 'admin_product' in app.request.get('_route') %}active{% endif %}">
                 Products
+            </a>
+            <a href="{{ path('admin_categories') }}" class="nav-link {% if 'admin_categories' in app.request.get('_route') %}active{% endif %}">
+                Categories
             </a>
             <a href="{{ path('admin_inventory') }}" class="nav-link {% if app.request.get('_route') == 'admin_inventory' %}active{% endif %}">
                 Inventory
@@ -306,6 +323,12 @@
             </a>
             
             <div class="nav-section">System</div>
+            <a href="{{ path('admin_users') }}" class="nav-link {% if 'admin_users' in app.request.get('_route') %}active{% endif %}">
+                User Management
+            </a>
+            <a href="{{ path('admin_activity_logs') }}" class="nav-link {% if 'admin_activity_logs' in app.request.get('_route') %}active{% endif %}">
+                Activity Logs
+            </a>
             <a href="{{ path('admin_settings') }}" class="nav-link {% if app.request.get('_route') == 'admin_settings' %}active{% endif %}">
                 Settings
             </a>

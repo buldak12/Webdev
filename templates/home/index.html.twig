@@ -47,7 +47,22 @@
             <div class="col-lg-6 d-none d-lg-block">
                 <div class="hero-visual text-center">
                     <div class="hero-glow"></div>
-                    <i class="bi bi-cloud-haze2 text-white" style="font-size: 12rem; opacity: 0.15;"></i>
+                    <div class="hero-brand-card">
+                        <div class="hero-brand-badge">
+                            <img src="{{ asset('uploads/products/logo.jpg') }}" alt="Easy Vape logo" class="hero-brand-logo">
+                        </div>
+                        <div>
+                            <p class="text-white-50 small mb-1 text-uppercase">Curated visual identity</p>
+                            <h3 class="h5 text-white mb-0">Easy Vape</h3>
+                        </div>
+                    </div>
+                    <div class="hero-image-grid">
+                        {% for image in brand_images|slice(0, 4) %}
+                            <div class="hero-image-tile tile-{{ loop.index }}">
+                                <img src="{{ asset(image) }}" alt="Easy Vape showcase image {{ loop.index }}">
+                            </div>
+                        {% endfor %}
+                    </div>
                 </div>
             </div>
         </div>
@@ -106,43 +121,74 @@
 <section class="py-5">
     <div class="container">
         <div class="text-center mb-5">
-            <h2 class="h3 fw-bold">Shop by Category</h2>
-            <p class="text-muted">Find exactly what you're looking for</p>
+            <h2 class="h3 fw-bold">4 Vape Product Categories</h2>
+            <p class="text-muted">Choose the device style that matches your vaping preference</p>
         </div>
         <div class="row g-4">
-            {% for category in categories|slice(0, 4) %}
-                <div class="col-md-6 col-lg-3">
-                    <a href="{{ path('shop_category', {slug: category.slug}) }}" class="category-card d-block text-decoration-none">
-                        <div class="card border-0 shadow-sm h-100">
-                            <div class="card-body text-center py-4">
-                                <div class="category-icon mx-auto mb-3">
-                                    <i class="bi bi-box-seam"></i>
-                                </div>
-                                <h5 class="card-title mb-1 text-dark">{{ category.name }}</h5>
-                                <small class="text-muted">{{ category.activeProducts|length }} products</small>
+            <div class="col-md-6 col-lg-3">
+                <div class="category-card d-block text-decoration-none h-100">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body text-center py-4 d-flex flex-column">
+                            <div class="category-icon mx-auto mb-3">
+                                <i class="bi bi-lightning-charge-fill"></i>
                             </div>
-                        </div>
-                    </a>
-                </div>
-            {% else %}
-                {% for i in 1..4 %}
-                    <div class="col-md-6 col-lg-3">
-                        <div class="card border-0 shadow-sm h-100">
-                            <div class="card-body text-center py-4">
-                                <div class="category-icon mx-auto mb-3">
-                                    <i class="bi bi-box-seam"></i>
-                                </div>
-                                <h5 class="card-title mb-1">Category {{ i }}</h5>
-                                <small class="text-muted">Coming soon</small>
-                            </div>
+                            <h5 class="card-title mb-2 text-dark">Disposables</h5>
+                            <p class="text-muted small mb-0">
+                                Single-use devices that come pre-filled and pre-charged. Once the e-liquid or battery is depleted, the entire unit is replaced.
+                            </p>
                         </div>
                     </div>
-                {% endfor %}
-            {% endfor %}
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="category-card d-block text-decoration-none h-100">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body text-center py-4 d-flex flex-column">
+                            <div class="category-icon mx-auto mb-3">
+                                <i class="bi bi-grid-3x3-gap-fill"></i>
+                            </div>
+                            <h5 class="card-title mb-2 text-dark">Pod Systems</h5>
+                            <p class="text-muted small mb-0">
+                                Compact, low-power devices that use plastic pods rather than glass tanks. Available in closed (pre-filled) or open (refillable) versions and designed for portability.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="category-card d-block text-decoration-none h-100">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body text-center py-4 d-flex flex-column">
+                            <div class="category-icon mx-auto mb-3">
+                                <i class="bi bi-pen-fill"></i>
+                            </div>
+                            <h5 class="card-title mb-2 text-dark">Vape Pens</h5>
+                            <p class="text-muted small mb-0">
+                                Slim, cylindrical devices that bridge the gap between pods and mods. They usually include a refillable tank and single-button operation for simple performance.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="category-card d-block text-decoration-none h-100">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body text-center py-4 d-flex flex-column">
+                            <div class="category-icon mx-auto mb-3">
+                                <i class="bi bi-cpu-fill"></i>
+                            </div>
+                            <h5 class="card-title mb-2 text-dark">Mods</h5>
+                            <p class="text-muted small mb-0">
+                                Powerful, high-wattage devices (Box Mods or Pod Mods) for advanced customization. They often feature replaceable batteries and deeper control options.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
         <div class="text-center mt-4">
             <a href="{{ path('shop_index') }}" class="btn btn-outline-dark">
-                View All Categories <i class="bi bi-arrow-right ms-1"></i>
+                View All Products <i class="bi bi-arrow-right ms-1"></i>
             </a>
         </div>
     </div>
@@ -181,7 +227,101 @@
 </section>
 
 {# ============================================
-   SECTION 5: AGE VERIFICATION / COMPLIANCE
+   SECTION 5: MOBILE APP SHOWCASE (DIVINO)
+   ============================================ #}
+<section class="py-5">
+    <div class="container">
+        <div class="text-center mb-5">
+            <span class="badge bg-primary bg-opacity-10 text-primary mb-3 px-3 py-2">
+                <i class="bi bi-phone me-1"></i> Download Our App
+            </span>
+            <h2 class="h3 fw-bold mb-3">Shop Anytime, Anywhere</h2>
+            <p class="text-muted">The Divino app brings the Easy Vape experience to your pocket</p>
+        </div>
+        <div class="row align-items-center g-5">
+            <div class="col-lg-6">
+                <div class="app-showcase">
+                    <div class="app-phone-mockup">
+                        <div class="phone-frame">
+                            <div class="phone-content">
+                                <div class="app-screen-demo">
+                                    <div class="app-header">
+                                        <h5 class="text-white mb-0">Divino</h5>
+                                        <small class="text-white-50">Premium Vape Shop</small>
+                                    </div>
+                                    <div class="app-menu-items">
+                                        <div class="menu-item active">
+                                            <i class="bi bi-house"></i><span>Shop</span>
+                                        </div>
+                                        <div class="menu-item">
+                                            <i class="bi bi-bag"></i><span>Orders</span>
+                                        </div>
+                                        <div class="menu-item">
+                                            <i class="bi bi-bell"></i><span>Notify</span>
+                                        </div>
+                                        <div class="menu-item">
+                                            <i class="bi bi-person"></i><span>Profile</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <h3 class="fw-bold mb-4">Why Use Divino?</h3>
+                <div class="app-feature mb-4">
+                    <div class="feature-icon mb-3">
+                        <i class="bi bi-lightning-charge-fill"></i>
+                    </div>
+                    <h5 class="fw-semibold">Lightning Fast Checkout</h5>
+                    <p class="text-muted mb-0">Complete your purchase in seconds with our streamlined mobile checkout process.</p>
+                </div>
+                <div class="app-feature mb-4">
+                    <div class="feature-icon mb-3">
+                        <i class="bi bi-bell-fill"></i>
+                    </div>
+                    <h5 class="fw-semibold">Real-Time Notifications</h5>
+                    <p class="text-muted mb-0">Get instant updates on order status, new products, and exclusive app-only deals.</p>
+                </div>
+                <div class="app-feature mb-4">
+                    <div class="feature-icon mb-3">
+                        <i class="bi bi-shield-check"></i>
+                    </div>
+                    <h5 class="fw-semibold">Secure & Reliable</h5>
+                    <p class="text-muted mb-0">Your data is protected with military-grade encryption and built on React Native.</p>
+                </div>
+                <div class="app-feature">
+                    <div class="feature-icon mb-3">
+                        <i class="bi bi-bookmark-fill"></i>
+                    </div>
+                    <h5 class="fw-semibold">Wishlist & Favorites</h5>
+                    <p class="text-muted mb-0">Save your favorite products and never miss a restock or price drop alert.</p>
+                </div>
+                <div class="d-flex gap-3 mt-5">
+                    <a href="#" class="btn btn-dark d-flex align-items-center gap-2">
+                        <i class="bi bi-apple"></i>
+                        <div class="text-start">
+                            <div style="font-size: 0.75rem;">Download on</div>
+                            <div class="fw-bold">App Store</div>
+                        </div>
+                    </a>
+                    <a href="#" class="btn btn-dark d-flex align-items-center gap-2">
+                        <i class="bi bi-google-play"></i>
+                        <div class="text-start">
+                            <div style="font-size: 0.75rem;">Get it on</div>
+                            <div class="fw-bold">Google Play</div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+{# ============================================
+   SECTION 6: AGE VERIFICATION / COMPLIANCE
    ============================================ #}
 <section class="py-5">
     <div class="container">
@@ -198,7 +338,7 @@
                 <h2 class="h3 fw-bold mb-3">Age Verification Required</h2>
                 <p class="text-muted mb-4">
                     In compliance with Philippine regulations, all vape product purchases require age verification.
-                    You must be 21 years or older to purchase from VapeShop PH.
+                    You must be 21 years or older to purchase from Easy Vape Philippines.
                 </p>
                 <ul class="list-unstyled mb-4">
                     <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>Quick one-time verification</li>
@@ -225,7 +365,7 @@
 </section>
 
 {# ============================================
-   SECTION 6: NEWSLETTER / CTA
+   SECTION 7: NEWSLETTER / CTA
    ============================================ #}
 <section class="py-5 bg-dark text-white">
     <div class="container">
@@ -252,12 +392,12 @@
 </section>
 
 {# ============================================
-   SECTION 7: WHY CHOOSE US
+   SECTION 8: WHY CHOOSE US
    ============================================ #}
 <section class="py-5">
     <div class="container">
         <div class="text-center mb-5">
-            <h2 class="h3 fw-bold">Why Choose VapeShop?</h2>
+            <h2 class="h3 fw-bold">Why Choose Easy Vape?</h2>
             <p class="text-muted">The trusted choice for vapers across the Philippines</p>
         </div>
         <div class="row g-4">
@@ -313,6 +453,67 @@
     left: 50%;
     transform: translate(-50%, -50%);
 }
+.hero-visual {
+    position: relative;
+    min-height: 420px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.hero-brand-card {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    padding: 1rem 1.25rem;
+    border-radius: 1.25rem;
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.18);
+    width: min(100%, 360px);
+}
+.hero-brand-badge {
+    width: 64px;
+    height: 64px;
+    border-radius: 1rem;
+    background: rgba(255, 255, 255, 0.95);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+}
+.hero-brand-logo {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 0.75rem;
+}
+.hero-image-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+    width: 100%;
+    max-width: 420px;
+    padding-top: 120px;
+}
+.hero-image-tile {
+    overflow: hidden;
+    border-radius: 1.25rem;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.18);
+    background: rgba(255, 255, 255, 0.08);
+    aspect-ratio: 1 / 1;
+}
+.hero-image-tile img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
 .min-vh-50 { min-height: 50vh; }
 
 /* Feature Icons */
@@ -327,6 +528,7 @@
     color: #18181b;
     font-size: 1.1rem;
 }
+
 
 /* Category Cards */
 .category-icon {
@@ -399,10 +601,138 @@
     color: #18181b;
 }
 
+/* Mobile App Section */
+.app-showcase {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    min-height: 500px;
+}
+
+.phone-frame {
+    width: 280px;
+    height: 560px;
+    background: #000;
+    border-radius: 40px;
+    padding: 12px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    position: relative;
+    overflow: hidden;
+    border: 2px solid #333;
+}
+
+.phone-frame::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 150px;
+    height: 25px;
+    background: #000;
+    border-radius: 0 0 25px 25px;
+    z-index: 10;
+}
+
+.phone-content {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #18181b 0%, #27272a 100%);
+    border-radius: 32px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.app-screen-demo {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 30px 15px 15px 15px;
+    color: white;
+}
+
+.app-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.app-header h5 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin: 0;
+}
+
+.app-menu-items {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.menu-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 15px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    font-size: 0.85rem;
+    transition: all 0.3s ease;
+}
+
+.menu-item.active {
+    background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+    font-weight: 600;
+}
+
+.menu-item i {
+    font-size: 1.1rem;
+}
+
+.menu-item span {
+    flex: 1;
+}
+
+.app-feature {
+    padding: 1rem;
+    border-radius: 12px;
+    background: #f9fafb;
+    transition: all 0.3s ease;
+}
+
+.app-feature:hover {
+    background: #f3f4f6;
+    transform: translateX(4px);
+}
+
+.app-feature .feature-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+    color: white !important;
+    font-size: 1.35rem !important;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .hero-section { min-height: auto; }
     .hero-section h1 { font-size: 2rem; }
+    .hero-visual {
+        min-height: 320px;
+    }
+    .hero-brand-card {
+        position: relative;
+        left: auto;
+        transform: none;
+        margin: 0 auto 1rem;
+        width: 100%;
+    }
+    .hero-image-grid {
+        padding-top: 0;
+        max-width: 100%;
+    }
 }
 </style>
 {% endblock %}

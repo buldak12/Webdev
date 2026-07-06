@@ -13,10 +13,22 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 
-#[Route('/admin')]
 class CustomerController extends AbstractController
 {
-    #[Route('/customers', name: 'admin_customers')]
+    private function resolveRoute(Request $request, string $adminRoute, string $staffRoute): string
+    {
+        $currentRoute = (string) $request->attributes->get('_route', '');
+
+        return str_starts_with($currentRoute, 'staff_customers') ? $staffRoute : $adminRoute;
+    }
+
+    private function redirectAfterWrite(Request $request, string $adminRoute, string $staffRoute, array $params = []): Response
+    {
+        return $this->redirectToRoute($this->resolveRoute($request, $adminRoute, $staffRoute), $params);
+    }
+
+    #[Route('/admin/customers', name: 'admin_customers')]
+    #[Route('/staff/customers', name: 'staff_customers')]
     public function index(UserRepository $userRepository, Request $request): Response
     {
         $status = $request->query->get('status');
@@ -30,11 +42,13 @@ class CustomerController extends AbstractController
         return $this->render('admin/customers/index.html.twig', [
             'customers' => $customers,
             'current_status' => $status,
+            'customers_route_prefix' => str_starts_with((string) $request->attributes->get('_route', ''), 'staff_customers') ? 'staff_customers' : 'admin_customers',
         ]);
     }
 
-    #[Route('/customers/{id}', name: 'admin_customers_show', requirements: ['id' => '\d+'])]
-    public function show(int $id, UserRepository $userRepository, OrderRepository $orderRepository): Response
+    #[Route('/admin/customers/{id}', name: 'admin_customers_show', requirements: ['id' => '\d+'])]
+    #[Route('/staff/customers/{id}', name: 'staff_customers_show', requirements: ['id' => '\d+'])]
+    public function show(int $id, Request $request, UserRepository $userRepository, OrderRepository $orderRepository): Response
     {
         $customer = $userRepository->find($id);
         if (!$customer) {
@@ -53,10 +67,12 @@ class CustomerController extends AbstractController
             'customer' => $customer,
             'orders' => $orders,
             'total_spent' => $totalSpent,
+            'customers_route_prefix' => str_starts_with((string) $request->attributes->get('_route', ''), 'staff_customers') ? 'staff_customers' : 'admin_customers',
         ]);
     }
 
-    #[Route('/customers/{id}/verify', name: 'admin_customers_verify', methods: ['POST'])]
+    #[Route('/admin/customers/{id}/verify', name: 'admin_customers_verify', methods: ['POST'])]
+    #[Route('/staff/customers/{id}/verify', name: 'staff_customers_verify', methods: ['POST'])]
     public function verify(
         int $id,
         Request $request,
@@ -99,10 +115,11 @@ class CustomerController extends AbstractController
 
         $em->flush();
 
-        return $this->redirectToRoute('admin_customers');
+        return $this->redirectAfterWrite($request, 'admin_customers', 'staff_customers');
     }
 
-    #[Route('/customers/{id}/points', name: 'admin_customers_points', methods: ['POST'])]
+    #[Route('/admin/customers/{id}/points', name: 'admin_customers_points', methods: ['POST'])]
+    #[Route('/staff/customers/{id}/points', name: 'staff_customers_points', methods: ['POST'])]
     public function adjustPoints(int $id, Request $request, UserRepository $userRepository, EntityManagerInterface $em): Response
     {
         $customer = $userRepository->find($id);
@@ -117,11 +134,12 @@ class CustomerController extends AbstractController
         $em->flush();
 
         $this->addFlash('success', 'Loyalty points updated');
-        return $this->redirectToRoute('admin_customers_show', ['id' => $id]);
+        return $this->redirectAfterWrite($request, 'admin_customers_show', 'staff_customers_show', ['id' => $id]);
     }
 
-    #[Route('/customers/{id}/toggle', name: 'admin_customers_toggle', methods: ['POST'])]
-    public function toggle(int $id, UserRepository $userRepository, EntityManagerInterface $em): Response
+    #[Route('/admin/customers/{id}/toggle', name: 'admin_customers_toggle', methods: ['POST'])]
+    #[Route('/staff/customers/{id}/toggle', name: 'staff_customers_toggle', methods: ['POST'])]
+    public function toggle(int $id, Request $request, UserRepository $userRepository, EntityManagerInterface $em): Response
     {
         $customer = $userRepository->find($id);
         if ($customer) {
@@ -130,6 +148,6 @@ class CustomerController extends AbstractController
             $this->addFlash('success', $customer->isActive() ? 'Customer activated' : 'Customer deactivated');
         }
 
-        return $this->redirectToRoute('admin_customers');
+        return $this->redirectAfterWrite($request, 'admin_customers', 'staff_customers');
     }
 }

@@ -33,7 +33,7 @@
                     <span class="fw-bold">₱{{ product.basePrice|number_format(2) }}</span>
                 {% endif %}
             </div>
-            {% if product.totalStock > 0 %}
+            {% if product.availableStock > 0 %}
                 <span class="badge bg-success-subtle text-success">In Stock</span>
             {% else %}
                 <span class="badge bg-danger-subtle text-danger">Out of Stock</span>

@@ -227,6 +227,11 @@ function updateCartItem(itemId, quantity) {
     })
     .then(res => res.json())
     .then(data => {
+        if (data.redirect) {
+            window.location.href = data.redirect;
+            return;
+        }
+
         if (data.success) {
             updateSummary(data.summary);
             updateCartBadge(data.cart_count);
@@ -249,6 +254,11 @@ function removeCartItem(itemId, row) {
     })
     .then(res => res.json())
     .then(data => {
+        if (data.redirect) {
+            window.location.href = data.redirect;
+            return;
+        }
+
         if (data.success) {
             row.remove();
             updateSummary(data.summary);
@@ -279,6 +289,11 @@ function applyPromo() {
     })
     .then(res => res.json())
     .then(data => {
+        if (data.redirect) {
+            window.location.href = data.redirect;
+            return;
+        }
+
         if (data.success) {
             location.reload();
         } else {
@@ -292,7 +307,14 @@ function removePromo() {
         method: 'POST',
         headers: { 'X-Requested-With': 'XMLHttpRequest' }
     })
-    .then(() => location.reload());
+    .then(res => res.json())
+    .then(data => {
+        if (data.redirect) {
+            window.location.href = data.redirect;
+            return;
+        }
+        location.reload();
+    });
 }
 
 function updateSummary(summary) {

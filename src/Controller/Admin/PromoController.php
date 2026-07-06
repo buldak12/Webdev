@@ -10,10 +10,22 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 
-#[Route('/admin')]
 class PromoController extends AbstractController
 {
-    #[Route('/promos', name: 'admin_promos')]
+    private function resolveRoute(Request $request, string $adminRoute, string $staffRoute): string
+    {
+        $currentRoute = (string) $request->attributes->get('_route', '');
+
+        return str_starts_with($currentRoute, 'staff_promos') ? $staffRoute : $adminRoute;
+    }
+
+    private function redirectAfterWrite(Request $request, string $adminRoute, string $staffRoute, array $params = []): Response
+    {
+        return $this->redirectToRoute($this->resolveRoute($request, $adminRoute, $staffRoute), $params);
+    }
+
+    #[Route('/admin/promos', name: 'admin_promos')]
+    #[Route('/staff/promos', name: 'staff_promos')]
     public function index(PromoCodeRepository $promoCodeRepository, Request $request): Response
     {
         $filter = $request->query->get('filter');
@@ -30,10 +42,12 @@ class PromoController extends AbstractController
             'promos' => $promos,
             'current_filter' => $filter,
             'types' => PromoCode::TYPES,
+            'promos_route_prefix' => str_starts_with((string) $request->attributes->get('_route', ''), 'staff_promos') ? 'staff_promos' : 'admin_promos',
         ]);
     }
 
-    #[Route('/promos/new', name: 'admin_promos_new', methods: ['GET', 'POST'])]
+    #[Route('/admin/promos/new', name: 'admin_promos_new', methods: ['GET', 'POST'])]
+    #[Route('/staff/promos/new', name: 'staff_promos_new', methods: ['GET', 'POST'])]
     public function new(Request $request, EntityManagerInterface $em): Response
     {
         if ($request->isMethod('POST')) {
@@ -68,16 +82,18 @@ class PromoController extends AbstractController
             $em->flush();
 
             $this->addFlash('success', 'Promo code created successfully');
-            return $this->redirectToRoute('admin_promos');
+            return $this->redirectAfterWrite($request, 'admin_promos', 'staff_promos');
         }
 
         return $this->render('admin/promos/form.html.twig', [
             'promo' => null,
             'types' => PromoCode::TYPES,
+            'promos_route_prefix' => str_starts_with((string) $request->attributes->get('_route', ''), 'staff_promos') ? 'staff_promos' : 'admin_promos',
         ]);
     }
 
-    #[Route('/promos/{id}/edit', name: 'admin_promos_edit', methods: ['GET', 'POST'])]
+    #[Route('/admin/promos/{id}/edit', name: 'admin_promos_edit', methods: ['GET', 'POST'])]
+    #[Route('/staff/promos/{id}/edit', name: 'staff_promos_edit', methods: ['GET', 'POST'])]
     public function edit(int $id, Request $request, PromoCodeRepository $promoCodeRepository, EntityManagerInterface $em): Response
     {
         $promo = $promoCodeRepository->find($id);
@@ -111,17 +127,19 @@ class PromoController extends AbstractController
             $em->flush();
 
             $this->addFlash('success', 'Promo code updated');
-            return $this->redirectToRoute('admin_promos');
+            return $this->redirectAfterWrite($request, 'admin_promos', 'staff_promos');
         }
 
         return $this->render('admin/promos/form.html.twig', [
             'promo' => $promo,
             'types' => PromoCode::TYPES,
+            'promos_route_prefix' => str_starts_with((string) $request->attributes->get('_route', ''), 'staff_promos') ? 'staff_promos' : 'admin_promos',
         ]);
     }
 
-    #[Route('/promos/{id}/toggle', name: 'admin_promos_toggle', methods: ['POST'])]
-    public function toggle(int $id, PromoCodeRepository $promoCodeRepository, EntityManagerInterface $em): Response
+    #[Route('/admin/promos/{id}/toggle', name: 'admin_promos_toggle', methods: ['POST'])]
+    #[Route('/staff/promos/{id}/toggle', name: 'staff_promos_toggle', methods: ['POST'])]
+    public function toggle(int $id, Request $request, PromoCodeRepository $promoCodeRepository, EntityManagerInterface $em): Response
     {
         $promo = $promoCodeRepository->find($id);
         if ($promo) {
@@ -130,11 +148,12 @@ class PromoController extends AbstractController
             $this->addFlash('success', $promo->isActive() ? 'Promo code activated' : 'Promo code deactivated');
         }
 
-        return $this->redirectToRoute('admin_promos');
+        return $this->redirectAfterWrite($request, 'admin_promos', 'staff_promos');
     }
 
-    #[Route('/promos/{id}/delete', name: 'admin_promos_delete', methods: ['POST'])]
-    public function delete(int $id, PromoCodeRepository $promoCodeRepository, EntityManagerInterface $em): Response
+    #[Route('/admin/promos/{id}/delete', name: 'admin_promos_delete', methods: ['POST'])]
+    #[Route('/staff/promos/{id}/delete', name: 'staff_promos_delete', methods: ['POST'])]
+    public function delete(int $id, Request $request, PromoCodeRepository $promoCodeRepository, EntityManagerInterface $em): Response
     {
         $promo = $promoCodeRepository->find($id);
         if ($promo) {
@@ -143,6 +162,6 @@ class PromoController extends AbstractController
             $this->addFlash('success', 'Promo code deleted');
         }
 
-        return $this->redirectToRoute('admin_promos');
+        return $this->redirectAfterWrite($request, 'admin_promos', 'staff_promos');
     }
 }

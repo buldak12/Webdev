@@ -24,8 +24,9 @@ class CartController extends AbstractController
     #[Route('', name: 'cart_index')]
     public function index(): Response
     {
-        if ($response = $this->denyAdminShoppingPageAccess()) {
-            return $response;
+        if (!$this->getUser()) {
+            $this->addFlash('warning', 'Please log in to access your cart.');
+            return $this->redirectToRoute('app_login');
         }
 
         $cart = $this->cartService->getCart($this->getUser());
@@ -44,7 +45,7 @@ class CartController extends AbstractController
     #[Route('/add', name: 'cart_add', methods: ['POST'])]
     public function add(Request $request): JsonResponse
     {
-        if ($response = $this->denyAdminShoppingApiAccess()) {
+        if ($response = $this->denyGuestCartApiAccess()) {
             return $response;
         }
 
@@ -70,7 +71,12 @@ class CartController extends AbstractController
         }
 
         $cart = $this->cartService->getCart($this->getUser());
-        $this->cartService->addItem($cart, $variant, $quantity);
+
+        try {
+            $this->cartService->addItem($cart, $variant, $quantity);
+        } catch (\InvalidArgumentException $e) {
+            return new JsonResponse(['success' => false, 'error' => $e->getMessage()], 400);
+        }
 
         $cartHtml = $this->renderView('customer/_partials/mini_cart.html.twig', [
             'cart' => $cart,
@@ -87,7 +93,7 @@ class CartController extends AbstractController
     #[Route('/update', name: 'cart_update', methods: ['POST'])]
     public function update(Request $request): JsonResponse
     {
-        if ($response = $this->denyAdminShoppingApiAccess()) {
+        if ($response = $this->denyGuestCartApiAccess()) {
             return $response;
         }
 
@@ -112,13 +118,11 @@ class CartController extends AbstractController
         if ($quantity === 0) {
             $this->cartService->removeItem($item);
         } else {
-            if ($item->getVariant()->getAvailableStock() < $quantity) {
-                return new JsonResponse([
-                    'success' => false, 
-                    'error' => 'Only ' . $item->getVariant()->getAvailableStock() . ' units available'
-                ], 400);
+            try {
+                $this->cartService->updateItemQuantity($item, $quantity);
+            } catch (\InvalidArgumentException $e) {
+                return new JsonResponse(['success' => false, 'error' => $e->getMessage()], 400);
             }
-            $this->cartService->updateItemQuantity($item, $quantity);
         }
 
         $cart = $this->cartService->getCart($this->getUser());
@@ -135,7 +139,7 @@ class CartController extends AbstractController
     #[Route('/remove', name: 'cart_remove', methods: ['POST'])]
     public function remove(Request $request): JsonResponse
     {
-        if ($response = $this->denyAdminShoppingApiAccess()) {
+        if ($response = $this->denyGuestCartApiAccess()) {
             return $response;
         }
 
@@ -165,7 +169,7 @@ class CartController extends AbstractController
     #[Route('/promo', name: 'cart_apply_promo', methods: ['POST'])]
     public function applyPromo(Request $request): JsonResponse
     {
-        if ($response = $this->denyAdminShoppingApiAccess()) {
+        if ($response = $this->denyGuestCartApiAccess()) {
             return $response;
         }
 
@@ -196,7 +200,7 @@ class CartController extends AbstractController
     #[Route('/promo/remove', name: 'cart_remove_promo', methods: ['POST'])]
     public function removePromo(): JsonResponse
     {
-        if ($response = $this->denyAdminShoppingApiAccess()) {
+        if ($response = $this->denyGuestCartApiAccess()) {
             return $response;
         }
 
@@ -211,14 +215,17 @@ class CartController extends AbstractController
         ]);
     }
 
-    private function denyAdminShoppingPageAccess(): ?Response
+    private function denyGuestCartApiAccess(): ?JsonResponse
     {
-        if (!$this->isGranted(User::ROLE_ADMIN)) {
+        if ($this->getUser()) {
             return null;
         }
 
-        $this->addFlash('warning', 'Admin account cannot shop. Please use a customer account for purchases.');
-        return $this->redirectToRoute('admin_dashboard');
+        return new JsonResponse([
+            'success' => false,
+            'error' => 'Please log in to add items to your cart.',
+            'redirect' => $this->generateUrl('app_login'),
+        ], 401);
     }
 
     private function denyAdminShoppingApiAccess(): ?JsonResponse

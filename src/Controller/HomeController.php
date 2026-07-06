@@ -24,11 +24,26 @@ class HomeController extends AbstractController
         $categories = $this->categoryRepository->findActive();
         $featuredProducts = array_slice($this->productRepository->findActive(), 0, 8);
         $cart = $this->cartService->getCart($this->getUser());
+        $brandImages = [
+            'uploads/products/a.jpg',
+            'uploads/products/b.jpg',
+            'uploads/products/c.jpg',
+            'uploads/products/d.jpg',
+            'uploads/products/e.jpg',
+            'uploads/products/f.jpg',
+            'uploads/products/g.jpg',
+            'uploads/products/h.jpg',
+            'uploads/products/i.jpg',
+            'uploads/products/j.jpg',
+            'uploads/products/k.jpg',
+            'uploads/products/logo.jpg',
+        ];
 
         return $this->render('home/index.html.twig', [
             'categories' => $categories,
             'categories_menu' => $categories,
             'featured_products' => $featuredProducts,
+            'brand_images' => $brandImages,
             'cart' => $cart,
             'cart_count' => $cart->getItemCount(),
         ]);
@@ -43,27 +58,27 @@ class HomeController extends AbstractController
         // Team members data
         $team = [
             [
-                'name' => 'Juan Dela Cruz',
+                'name' => 'Justine Preciado',
                 'role' => 'Founder & CEO',
-                'bio' => 'Vaping enthusiast since 2015. Juan founded VapeShop with a mission to provide quality products to Filipino vapers.',
+                'bio' => 'Vaping enthusiast and tech innovator. Justine founded Easy Vape to revolutionize how Filipinos access quality vaping products with seamless mobile experience.',
                 'image' => null,
             ],
             [
-                'name' => 'Maria Santos',
-                'role' => 'Operations Manager',
-                'bio' => 'Ensures smooth order fulfillment and customer satisfaction. 5+ years in e-commerce logistics.',
+                'name' => 'Alex Rivera',
+                'role' => 'Mobile App Lead',
+                'bio' => 'Full-stack developer building the Divino mobile app. Focused on delivering an intuitive, fast, and secure shopping experience.',
                 'image' => null,
             ],
             [
-                'name' => 'Miguel Reyes',
-                'role' => 'Product Specialist',
-                'bio' => 'Our go-to expert for product recommendations. Tests and curates our entire catalog.',
+                'name' => 'Sarah Lopez',
+                'role' => 'Product & UX Manager',
+                'bio' => 'Ensures seamless product experience across web and mobile. Passionate about user-centered design and customer insights.',
                 'image' => null,
             ],
             [
-                'name' => 'Ana Garcia',
-                'role' => 'Customer Support Lead',
-                'bio' => 'Dedicated to helping customers find the perfect vape. Available 24/7 to assist.',
+                'name' => 'Carlo Fernandez',
+                'role' => 'Operations & Customer Care',
+                'bio' => 'Dedicated to excellence in fulfillment and support. Ensures every customer receives the best service possible.',
                 'image' => null,
             ],
         ];

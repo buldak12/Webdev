@@ -1,18 +1,19 @@
-{% extends 'admin/base.html.twig' %}
+{% extends app.request.get('_route') starts with 'staff_' ? 'staff/base.html.twig' : 'admin/base.html.twig' %}
 
 {% block title %}{% if product %}Edit Product{% else %}New Product{% endif %}{% endblock %}
 {% block breadcrumb %}Catalog / Products / {% if product %}Edit{% else %}New{% endif %}{% endblock %}
 
 {% block body %}
+{% set route_prefix = products_route_prefix|default('admin_products') %}
 <div class="page-header d-flex justify-content-between align-items-center">
     <h1>{% if product %}Edit Product{% else %}Add New Product{% endif %}</h1>
-    <a href="{{ path('admin_products') }}" class="btn btn-outline-secondary btn-icon" title="Back to products" aria-label="Back to products">
+    <a href="{{ path(route_prefix) }}" class="btn btn-outline-secondary btn-icon" title="Back to products" aria-label="Back to products">
         <i class="bi bi-arrow-left" aria-hidden="true"></i>
         <span class="visually-hidden">Back to Products</span>
     </a>
 </div>
 
-<form method="post">
+<form method="post" enctype="multipart/form-data" id="productForm">
     <div class="row">
         <!-- Main Content -->
         <div class="col-lg-8">
@@ -51,7 +52,7 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Brand</label>
-                        <input type="text" class="form-control" name="brand" value="{{ product ? product.brand : '' }}" placeholder="e.g., VapeShop Premium">
+                        <input type="text" class="form-control" name="brand" value="{{ product ? product.brand : '' }}" placeholder="e.g., Easy Vape Premium">
                     </div>
                 </div>
             </div>
@@ -123,12 +124,25 @@
                 </div>
                 <div class="card-body">
                     <div class="mb-3">
-                        <label class="form-label">Image URL</label>
-                        <input type="text" class="form-control" name="main_image" value="{{ product ? product.mainImage : 'images/lilac-prod-300x300.png' }}" placeholder="images/product.png">
+                        <label class="form-label">Product Image</label>
+                        <input type="hidden" name="main_image" id="mainImagePath" value="{{ product and product.mainImage ? product.mainImage : '' }}">
+                        <div class="dropzone border rounded-4 p-4 text-center bg-light" id="imageDropzone">
+                            <div class="mb-2">
+                                <i class="bi bi-cloud-arrow-up display-6 text-secondary"></i>
+                            </div>
+                            <h6 class="mb-1">Drag and drop an image here</h6>
+                            <p class="text-muted mb-3">or click to browse your files</p>
+                            <input type="file" class="d-none" name="main_image_file" id="mainImageFile" accept="image/*">
+                            <button type="button" class="btn btn-outline-primary btn-sm">Choose Image</button>
+                        </div>
+                        <div class="form-text mt-2">PNG, JPG, JPEG, WEBP, or GIF.</div>
                     </div>
-                    {% if product and product.mainImage %}
-                    <img src="{{ asset(product.mainImage) }}" class="img-thumbnail" style="max-height: 150px;">
-                    {% endif %}
+                    <div id="imagePreviewWrap" class="{% if not product or not product.mainImage %}d-none{% endif %}">
+                        <img id="imagePreview" src="{{ product and product.mainImage ? asset(product.mainImage) : '' }}" class="img-thumbnail" style="max-height: 180px; object-fit: cover;">
+                        {% if product and product.mainImage %}
+                            <p class="small text-muted mt-2 mb-0">Current image: {{ product.mainImage }}</p>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
         </div>
@@ -152,7 +166,7 @@
                             <i class="bi bi-check-lg" aria-hidden="true"></i>
                             <span class="visually-hidden">{{ product ? 'Update Product' : 'Save Product' }}</span>
                         </button>
-                        <a href="{{ path('admin_products') }}" class="btn btn-outline-secondary btn-icon" title="Cancel" aria-label="Cancel">
+                        <a href="{{ path(route_prefix) }}" class="btn btn-outline-secondary btn-icon" title="Cancel" aria-label="Cancel">
                             <i class="bi bi-x-lg" aria-hidden="true"></i>
                             <span class="visually-hidden">Cancel</span>
                         </a>
@@ -193,6 +207,59 @@
 </form>
 
 <script>
+const dropzone = document.getElementById('imageDropzone');
+const fileInput = document.getElementById('mainImageFile');
+const preview = document.getElementById('imagePreview');
+const previewWrap = document.getElementById('imagePreviewWrap');
+const hiddenPath = document.getElementById('mainImagePath');
+
+if (dropzone && fileInput) {
+    dropzone.addEventListener('click', () => fileInput.click());
+    dropzone.addEventListener('dragover', (event) => {
+        event.preventDefault();
+        dropzone.classList.add('border-primary', 'bg-white');
+    });
+    dropzone.addEventListener('dragleave', () => {
+        dropzone.classList.remove('border-primary', 'bg-white');
+    });
+    dropzone.addEventListener('drop', (event) => {
+        event.preventDefault();
+        dropzone.classList.remove('border-primary', 'bg-white');
+        if (event.dataTransfer.files.length > 0) {
+            fileInput.files = event.dataTransfer.files;
+            updatePreview(event.dataTransfer.files[0]);
+        }
+    });
+}
+
+if (fileInput) {
+    fileInput.addEventListener('change', () => {
+        if (fileInput.files.length > 0) {
+            updatePreview(fileInput.files[0]);
+        }
+    });
+}
+
+function updatePreview(file) {
+    if (!file) {
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+        if (preview) {
+            preview.src = event.target.result;
+        }
+        if (previewWrap) {
+            previewWrap.classList.remove('d-none');
+        }
+        if (hiddenPath) {
+            hiddenPath.value = '';
+        }
+    };
+    reader.readAsDataURL(file);
+}
+
 function addVariantRow() {
     const tbody = document.querySelector('#variantsTable tbody');
     const row = document.createElement('tr');
@@ -211,4 +278,17 @@ function addVariantRow() {
     tbody.appendChild(row);
 }
 </script>
+
+<style>
+.dropzone {
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border-style: dashed !important;
+}
+
+.dropzone:hover {
+    border-color: #0d6efd;
+    background: #fff;
+}
+</style>
 {% endblock %}

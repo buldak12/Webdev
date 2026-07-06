@@ -11,10 +11,22 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 
-#[Route('/admin')]
 class InventoryController extends AbstractController
 {
-    #[Route('/inventory', name: 'admin_inventory')]
+    private function resolveRoute(Request $request, string $adminRoute, string $staffRoute): string
+    {
+        $currentRoute = (string) $request->attributes->get('_route', '');
+
+        return str_starts_with($currentRoute, 'staff_inventory') ? $staffRoute : $adminRoute;
+    }
+
+    private function redirectAfterWrite(Request $request, string $adminRoute, string $staffRoute, array $params = []): Response
+    {
+        return $this->redirectToRoute($this->resolveRoute($request, $adminRoute, $staffRoute), $params);
+    }
+
+    #[Route('/admin/inventory', name: 'admin_inventory')]
+    #[Route('/staff/inventory', name: 'staff_inventory')]
     public function index(
         ProductVariantRepository $variantRepository,
         ProductRepository $productRepository,
@@ -39,10 +51,12 @@ class InventoryController extends AbstractController
             'products' => $products,
             'summary' => $summary,
             'current_filter' => $filter,
+            'inventory_route_prefix' => str_starts_with((string) $request->attributes->get('_route', ''), 'staff_inventory') ? 'staff_inventory' : 'admin_inventory',
         ]);
     }
 
-    #[Route('/inventory/{id}/update', name: 'admin_inventory_update', methods: ['POST'])]
+    #[Route('/admin/inventory/{id}/update', name: 'admin_inventory_update', methods: ['POST'])]
+    #[Route('/staff/inventory/{id}/update', name: 'staff_inventory_update', methods: ['POST'])]
     public function updateStock(
         int $id,
         Request $request,
@@ -71,10 +85,11 @@ class InventoryController extends AbstractController
             }
         }
 
-        return $this->redirectToRoute('admin_inventory');
+        return $this->redirectAfterWrite($request, 'admin_inventory', 'staff_inventory');
     }
 
-    #[Route('/inventory/{id}/threshold', name: 'admin_inventory_threshold', methods: ['POST'])]
+    #[Route('/admin/inventory/{id}/threshold', name: 'admin_inventory_threshold', methods: ['POST'])]
+    #[Route('/staff/inventory/{id}/threshold', name: 'staff_inventory_threshold', methods: ['POST'])]
     public function updateThreshold(
         int $id,
         Request $request,
@@ -90,10 +105,11 @@ class InventoryController extends AbstractController
         $inventoryService->setLowStockThreshold($variant, $threshold);
 
         $this->addFlash('success', 'Low stock threshold updated');
-        return $this->redirectToRoute('admin_inventory');
+        return $this->redirectAfterWrite($request, 'admin_inventory', 'staff_inventory');
     }
 
-    #[Route('/inventory/bulk-update', name: 'admin_inventory_bulk', methods: ['POST'])]
+    #[Route('/admin/inventory/bulk-update', name: 'admin_inventory_bulk', methods: ['POST'])]
+    #[Route('/staff/inventory/bulk-update', name: 'staff_inventory_bulk', methods: ['POST'])]
     public function bulkUpdate(
         Request $request,
         ProductVariantRepository $variantRepository,
@@ -111,6 +127,6 @@ class InventoryController extends AbstractController
         $em->flush();
         $this->addFlash('success', 'Stock levels updated');
 
-        return $this->redirectToRoute('admin_inventory');
+        return $this->redirectAfterWrite($request, 'admin_inventory', 'staff_inventory');
     }
 }

@@ -52,9 +52,7 @@ class SecurityController extends AbstractController
         if ($this->getUser()) {
             /** @var User $user */
             $user = $this->getUser();
-            if (in_array(User::ROLE_ADMIN, $user->getRoles())) {
-                return $this->redirectToRoute('admin_dashboard');
-            } elseif (in_array(User::ROLE_STAFF, $user->getRoles())) {
+            if (in_array(User::ROLE_ADMIN, $user->getRoles(), true) || in_array(User::ROLE_STAFF, $user->getRoles(), true)) {
                 return $this->redirectToRoute('staff_dashboard');
             }
             return $this->redirectToRoute('account_index');
@@ -121,9 +119,20 @@ class SecurityController extends AbstractController
             $staff->setPassword($passwordHasher->hashPassword($staff, $password));
 
             $entityManager->persist($staff);
+
+            $user = new User();
+            $user->setEmail('user@vapeshop.ph');
+            $user->setFirstName('Regular');
+            $user->setLastName('User');
+            $user->setRoles([User::ROLE_CUSTOMER]);
+            $user->setAgeVerificationStatus(User::AGE_STATUS_VERIFIED);
+            $user->setIsEmailVerified(true);
+            $user->setPassword($passwordHasher->hashPassword($user, $password));
+
+            $entityManager->persist($user);
             $entityManager->flush();
 
-            $this->addFlash('success', 'Admin and Staff accounts created successfully!');
+            $this->addFlash('success', 'Admin, staff, and user accounts created successfully!');
             return $this->redirectToRoute('app_login');
         }
 

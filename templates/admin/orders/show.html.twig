@@ -1,9 +1,10 @@
-{% extends 'admin/base.html.twig' %}
+{% extends app.request.get('_route') starts with 'staff_' ? 'staff/base.html.twig' : 'admin/base.html.twig' %}
 
 {% block title %}Order #{{ order.orderNumber }}{% endblock %}
 {% block breadcrumb %}Sales / Orders / #{{ order.orderNumber }}{% endblock %}
 
 {% block body %}
+{% set route_prefix = orders_route_prefix|default('admin_orders') %}
 {% set statuses = constant('App\\Entity\\Order::STATUSES') %}
 {% set statusClass = {
     'pending': 'warning',
@@ -33,20 +34,28 @@
             <div class="small text-muted mt-1">Delivered orders are locked and can no longer be status-edited.</div>
         {% endif %}
     </div>
-    <form method="post" action="{{ path('admin_orders_status', {id: order.id}) }}" class="d-flex flex-wrap gap-2 align-items-center">
-        <select class="form-select form-select-sm" name="status" style="min-width: 180px;" {{ isStatusLocked ? 'disabled' : '' }}>
-            {% for code, label in statuses %}
-                <option value="{{ code }}" {{ order.status == code ? 'selected' : '' }}>{{ label }}</option>
-            {% endfor %}
-        </select>
-        <input type="text" class="form-control form-control-sm" name="courier" placeholder="Courier (for shipped)" {{ isStatusLocked ? 'disabled' : '' }}>
-        <input type="text" class="form-control form-control-sm" name="tracking_number" placeholder="Tracking #" {{ isStatusLocked ? 'disabled' : '' }}>
-        <input type="text" class="form-control form-control-sm" name="reason" placeholder="Reason (for cancel)" {{ isStatusLocked ? 'disabled' : '' }}>
-        <button type="submit" class="btn btn-sm btn-primary btn-icon" title="Update status" aria-label="Update status" {{ isStatusLocked ? 'disabled' : '' }}>
-            <i class="bi bi-arrow-repeat" aria-hidden="true"></i>
-            <span class="visually-hidden">Update Status</span>
-        </button>
-    </form>
+    <div class="d-flex flex-wrap gap-2 align-items-center">
+        <form method="post" action="{{ path(route_prefix ~ '_status', {id: order.id}) }}" class="d-flex flex-wrap gap-2 align-items-center">
+            <select class="form-select form-select-sm" name="status" style="min-width: 180px;" {{ isStatusLocked ? 'disabled' : '' }}>
+                {% for code, label in statuses %}
+                    <option value="{{ code }}" {{ order.status == code ? 'selected' : '' }}>{{ label }}</option>
+                {% endfor %}
+            </select>
+            <input type="text" class="form-control form-control-sm" name="courier" placeholder="Courier (for shipped)" {{ isStatusLocked ? 'disabled' : '' }}>
+            <input type="text" class="form-control form-control-sm" name="tracking_number" placeholder="Tracking #" {{ isStatusLocked ? 'disabled' : '' }}>
+            <input type="text" class="form-control form-control-sm" name="reason" placeholder="Reason (for cancel)" {{ isStatusLocked ? 'disabled' : '' }}>
+            <button type="submit" class="btn btn-sm btn-primary btn-icon" title="Update status" aria-label="Update status" {{ isStatusLocked ? 'disabled' : '' }}>
+                <i class="bi bi-arrow-repeat" aria-hidden="true"></i>
+                <span class="visually-hidden">Update Status</span>
+            </button>
+        </form>
+        <form method="post" action="{{ path(route_prefix ~ '_delete', {id: order.id}) }}" onsubmit="return confirm('Delete this order permanently?');">
+            <button type="submit" class="btn btn-sm btn-outline-danger btn-icon" title="Delete order" aria-label="Delete order">
+                <i class="bi bi-trash" aria-hidden="true"></i>
+                <span class="visually-hidden">Delete Order</span>
+            </button>
+        </form>
+    </div>
 </div>
 
 <div class="row">
@@ -159,7 +168,7 @@
                 <h5 class="mb-0">Admin Notes</h5>
             </div>
             <div class="card-body">
-                <form method="post" action="{{ path('admin_orders_notes', {id: order.id}) }}">
+                <form method="post" action="{{ path(route_prefix ~ '_notes', {id: order.id}) }}">
                     <div class="mb-2">
                         <textarea class="form-control" rows="3" name="internal_notes" placeholder="Add internal notes for this order...">{{ order.internalNotes ?: '' }}</textarea>
                     </div>
@@ -210,7 +219,7 @@
                     <div>{{ customer.orders|length }} orders</div>
                 </div>
                 <hr>
-                <a href="{{ path('admin_customers_show', {id: customer.id}) }}" class="btn btn-sm btn-outline-primary btn-icon" title="View customer profile" aria-label="View customer profile">
+                <a href="{{ path(route_prefix == 'staff_sales_orders' ? 'staff_customers_show' : 'admin_customers_show', {id: customer.id}) }}" class="btn btn-sm btn-outline-primary btn-icon" title="View customer profile" aria-label="View customer profile">
                     <i class="bi bi-person-vcard" aria-hidden="true"></i>
                     <span class="visually-hidden">View Customer Profile</span>
                 </a>

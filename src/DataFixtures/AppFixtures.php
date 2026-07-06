@@ -44,6 +44,17 @@ class AppFixtures extends Fixture
         $staff->setPassword($this->passwordHasher->hashPassword($staff, 'staff123'));
         $manager->persist($staff);
 
+        // Create regular user account for the customer dashboard
+        $user = new User();
+        $user->setEmail('user@vapeshop.ph');
+        $user->setFirstName('Regular');
+        $user->setLastName('User');
+        $user->setRoles([User::ROLE_CUSTOMER]);
+        $user->setAgeVerificationStatus(User::AGE_STATUS_VERIFIED);
+        $user->setIsEmailVerified(true);
+        $user->setPassword($this->passwordHasher->hashPassword($user, 'user123'));
+        $manager->persist($user);
+
         // Create Test Customers
         $customers = [];
         $customerData = [

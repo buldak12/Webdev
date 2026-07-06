@@ -1,9 +1,10 @@
-{% extends 'admin/base.html.twig' %}
+{% extends app.request.get('_route') starts with 'staff_' ? 'staff/base.html.twig' : 'admin/base.html.twig' %}
 
 {% block title %}Customers{% endblock %}
 {% block breadcrumb %}Sales / Customers{% endblock %}
 
 {% block body %}
+{% set route_prefix = customers_route_prefix|default('admin_customers') %}
 {% set verifiedCount = 0 %}
 {% set pendingCount = 0 %}
 {% set rejectedCount = 0 %}
@@ -139,20 +140,20 @@
                             <td>₱{{ totalSpent|number_format(2) }}</td>
                             <td>
                                 <div class="d-flex flex-wrap gap-1">
-                                    <a href="{{ path('admin_customers_show', {id: customer.id}) }}" class="btn btn-sm btn-outline-primary btn-icon" title="View customer" aria-label="View customer">
+                                    <a href="{{ path(route_prefix ~ '_show', {id: customer.id}) }}" class="btn btn-sm btn-outline-primary btn-icon" title="View customer" aria-label="View customer">
                                         <i class="bi bi-eye" aria-hidden="true"></i>
                                         <span class="visually-hidden">View</span>
                                     </a>
 
                                     {% if status == 'pending' %}
-                                        <form method="post" action="{{ path('admin_customers_verify', {id: customer.id}) }}">
+                                        <form method="post" action="{{ path(route_prefix ~ '_verify', {id: customer.id}) }}">
                                             <input type="hidden" name="action" value="approve">
                                             <button type="submit" class="btn btn-sm btn-outline-success btn-icon" title="Approve verification" aria-label="Approve verification">
                                                 <i class="bi bi-check-lg" aria-hidden="true"></i>
                                                 <span class="visually-hidden">Approve</span>
                                             </button>
                                         </form>
-                                        <form method="post" action="{{ path('admin_customers_verify', {id: customer.id}) }}">
+                                        <form method="post" action="{{ path(route_prefix ~ '_verify', {id: customer.id}) }}">
                                             <input type="hidden" name="action" value="reject">
                                             <input type="hidden" name="reason" value="Rejected from customer queue">
                                             <button type="submit" class="btn btn-sm btn-outline-danger btn-icon" title="Reject verification" aria-label="Reject verification">

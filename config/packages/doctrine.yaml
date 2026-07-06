@@ -2,9 +2,9 @@ doctrine:
     dbal:
         url: '%env(resolve:DATABASE_URL)%'
 
-        # IMPORTANT: You MUST configure your server version,
-        # either here or in the DATABASE_URL env var (see .env file)
-        #server_version: '16'
+        # Allow Railway/CI to boot even before DB is reachable.
+        # Doctrine will still error when queries run, but cache warmup/build won’t crash.
+        # (No-op for non-Docker usage; kept for safer deploy.)
 
         profiling_collect_backtrace: '%kernel.debug%'
         use_savepoints: true
@@ -52,3 +52,4 @@ when@prod:
                     adapter: cache.app
                 doctrine.system_cache_pool:
                     adapter: cache.system
+

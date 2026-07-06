@@ -1,12 +1,13 @@
-{% extends 'admin/base.html.twig' %}
+{% extends app.request.get('_route') starts with 'staff_' ? 'staff/base.html.twig' : 'admin/base.html.twig' %}
 
 {% block title %}Products{% endblock %}
 {% block breadcrumb %}Catalog / Products{% endblock %}
 
 {% block body %}
+{% set route_prefix = products_route_prefix|default('admin_products') %}
 <div class="page-header d-flex justify-content-between align-items-center">
     <h1>Products Management</h1>
-    <a href="{{ path('admin_products_new') }}" class="btn btn-primary btn-icon" title="Add new product" aria-label="Add new product">
+    <a href="{{ path(route_prefix ~ '_new') }}" class="btn btn-primary btn-icon" title="Add new product" aria-label="Add new product">
         <i class="bi bi-plus-lg" aria-hidden="true"></i>
         <span class="visually-hidden">Add New Product</span>
     </a>
@@ -71,10 +72,8 @@
                 </thead>
                 <tbody>
                     {% for product in products %}
-                    {% set totalStock = 0 %}
-                    {% for variant in product.variants %}
-                        {% set totalStock = totalStock + variant.stock %}
-                    {% endfor %}
+                    {% set totalStock = product.availableStock %}
+                    {% set reservedStock = product.reservedStock %}
                     <tr>
                         <td><input type="checkbox" class="form-check-input"></td>
                         <td>
@@ -105,6 +104,7 @@
                             {% else %}
                                 <span class="badge bg-success">{{ totalStock }}</span>
                             {% endif %}
+                            <div class="text-muted mt-1" style="font-size: 0.75rem;">{{ reservedStock }} reserved / {{ product.totalStock }} total</div>
                         </td>
                         <td>
                             {% if not product.isActive %}
@@ -117,17 +117,17 @@
                         </td>
                         <td>
                             <div class="d-flex gap-1">
-                                <a href="{{ path('admin_products_edit', {id: product.id}) }}" class="btn btn-sm btn-outline-primary btn-icon" title="Edit product" aria-label="Edit product">
+                                <a href="{{ path(route_prefix ~ '_edit', {id: product.id}) }}" class="btn btn-sm btn-outline-primary btn-icon" title="Edit product" aria-label="Edit product">
                                     <i class="bi bi-pencil-square" aria-hidden="true"></i>
                                     <span class="visually-hidden">Edit</span>
                                 </a>
-                                <form action="{{ path('admin_products_toggle', {id: product.id}) }}" method="post" class="d-inline">
+                                <form action="{{ path(route_prefix ~ '_toggle', {id: product.id}) }}" method="post" class="d-inline">
                                     <button type="submit" class="btn btn-sm btn-outline-{{ product.isActive ? 'warning' : 'success' }} btn-icon" title="{{ product.isActive ? 'Disable product' : 'Enable product' }}" aria-label="{{ product.isActive ? 'Disable product' : 'Enable product' }}">
                                         <i class="bi {{ product.isActive ? 'bi-toggle-off' : 'bi-toggle-on' }}" aria-hidden="true"></i>
                                         <span class="visually-hidden">{{ product.isActive ? 'Disable' : 'Enable' }}</span>
                                     </button>
                                 </form>
-                                <form action="{{ path('admin_products_delete', {id: product.id}) }}" method="post" class="d-inline" onsubmit="return confirm('Delete this product?');">
+                                <form action="{{ path(route_prefix ~ '_delete', {id: product.id}) }}" method="post" class="d-inline" onsubmit="return confirm('Delete this product?');">
                                     <button type="submit" class="btn btn-sm btn-outline-danger btn-icon" title="Delete product" aria-label="Delete product">
                                         <i class="bi bi-trash" aria-hidden="true"></i>
                                         <span class="visually-hidden">Delete</span>
@@ -138,7 +138,7 @@
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="9" class="text-center py-4 text-muted">No products found. <a href="{{ path('admin_products_new') }}">Add your first product</a>.</td>
+                        <td colspan="9" class="text-center py-4 text-muted">No products found. <a href="{{ path(route_prefix ~ '_new') }}">Add your first product</a>.</td>
                     </tr>
                     {% endfor %}
                 </tbody>

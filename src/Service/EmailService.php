@@ -15,7 +15,7 @@ class EmailService
         private UrlGeneratorInterface $urlGenerator,
         private Environment $twig,
         private string $fromEmail = 'noreply@vapeshop.ph',
-        private string $fromName = 'VapeShop PH'
+        private string $fromName = 'Easy Vape'
     ) {}
 
     public function sendVerificationEmail(User $user): void
@@ -32,7 +32,7 @@ class EmailService
         $email = (new Email())
             ->from($this->fromName . ' <' . $this->fromEmail . '>')
             ->to($user->getEmail())
-            ->subject('Verify your email address - VapeShop PH')
+            ->subject('Verify your email address - Easy Vape')
             ->html($html);
 
         $this->mailer->send($email);
@@ -47,7 +47,7 @@ class EmailService
         $email = (new Email())
             ->from($this->fromName . ' <' . $this->fromEmail . '>')
             ->to($user->getEmail())
-            ->subject('Welcome to VapeShop PH!')
+            ->subject('Welcome to Easy Vape!')
             ->html($html);
 
         $this->mailer->send($email);

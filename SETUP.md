@@ -44,6 +44,7 @@ This will download all required packages into the `vendor/` folder.
 Create your local environment file:
 
 ```bash
+
 copy .env .env.local
 ```
 

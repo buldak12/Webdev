@@ -70,7 +70,7 @@
             
             <div class="mb-4">
                 <span class="h3 fw-bold" id="variantPrice">₱{{ product.basePrice|number_format(2) }}</span>
-                {% if product.totalStock > 0 %}
+                {% if product.availableStock > 0 %}
                     <span class="badge bg-success ms-2">In Stock</span>
                 {% else %}
                     <span class="badge bg-danger ms-2">Out of Stock</span>
@@ -115,7 +115,7 @@
                 </div>
                 
                 <div class="d-grid gap-2">
-                    {% if variants|length > 0 and product.totalStock > 0 %}
+                    {% if variants|length > 0 and product.availableStock > 0 %}
                         <button type="submit" class="btn btn-primary btn-lg">
                             <i class="bi bi-bag-plus me-2"></i>Add to Cart
                         </button>
@@ -203,6 +203,11 @@ document.getElementById('addToCartForm')?.addEventListener('submit', function(e)
     })
     .then(res => res.json())
     .then(data => {
+        if (data.redirect) {
+            window.location.href = data.redirect;
+            return;
+        }
+
         if (data.success) {
             // Update mini cart
             document.getElementById('miniCartDropdown').innerHTML = data.cart_html;

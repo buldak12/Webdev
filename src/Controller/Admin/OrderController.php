@@ -4,6 +4,7 @@ namespace App\Controller\Admin;
 
 use App\Entity\Order;
 use App\Repository\OrderRepository;
+use App\Repository\PaymentRepository;
 use App\Service\OrderService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -11,10 +12,22 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 
-#[Route('/admin/orders')]
 class OrderController extends AbstractController
 {
-    #[Route('', name: 'admin_orders')]
+    private function resolveRoute(Request $request, string $adminRoute, string $staffRoute): string
+    {
+        $currentRoute = (string) $request->attributes->get('_route', '');
+
+        return str_starts_with($currentRoute, 'staff_sales_orders') ? $staffRoute : $adminRoute;
+    }
+
+    private function redirectAfterWrite(Request $request, string $adminRoute, string $staffRoute, array $params = []): Response
+    {
+        return $this->redirectToRoute($this->resolveRoute($request, $adminRoute, $staffRoute), $params);
+    }
+
+    #[Route('/admin/orders', name: 'admin_orders')]
+    #[Route('/staff/sales/orders', name: 'staff_sales_orders')]
     public function index(OrderRepository $orderRepository, Request $request): Response
     {
         $status = $request->query->get('status');
@@ -29,11 +42,13 @@ class OrderController extends AbstractController
             'orders' => $orders,
             'current_status' => $status,
             'statuses' => Order::STATUSES,
+            'orders_route_prefix' => str_starts_with((string) $request->attributes->get('_route', ''), 'staff_sales_orders') ? 'staff_sales_orders' : 'admin_orders',
         ]);
     }
 
-    #[Route('/{id}', name: 'admin_orders_show', requirements: ['id' => '\d+'])]
-    public function show(int $id, OrderRepository $orderRepository): Response
+    #[Route('/admin/orders/{id}', name: 'admin_orders_show', requirements: ['id' => '\d+'])]
+    #[Route('/staff/sales/orders/{id}', name: 'staff_sales_orders_show', requirements: ['id' => '\d+'])]
+    public function show(int $id, Request $request, OrderRepository $orderRepository): Response
     {
         $order = $orderRepository->find($id);
         if (!$order) {
@@ -42,10 +57,12 @@ class OrderController extends AbstractController
 
         return $this->render('admin/orders/show.html.twig', [
             'order' => $order,
+            'orders_route_prefix' => str_starts_with((string) $request->attributes->get('_route', ''), 'staff_sales_orders') ? 'staff_sales_orders' : 'admin_orders',
         ]);
     }
 
-    #[Route('/{id}/status', name: 'admin_orders_status', methods: ['POST'])]
+    #[Route('/admin/orders/{id}/status', name: 'admin_orders_status', methods: ['POST'])]
+    #[Route('/staff/sales/orders/{id}/status', name: 'staff_sales_orders_status', methods: ['POST'])]
     public function updateStatus(
         int $id,
         Request $request,
@@ -60,7 +77,7 @@ class OrderController extends AbstractController
 
         if ($order->getStatus() === Order::STATUS_DELIVERED) {
             $this->addFlash('warning', 'Delivered orders are locked and cannot be edited.');
-            return $this->redirectToRoute('admin_orders_show', ['id' => $id]);
+            return $this->redirectAfterWrite($request, 'admin_orders_show', 'staff_sales_orders_show', ['id' => $id]);
         }
 
         $newStatus = $request->request->get('status');
@@ -95,10 +112,11 @@ class OrderController extends AbstractController
             $this->addFlash('error', $e->getMessage());
         }
 
-        return $this->redirectToRoute('admin_orders_show', ['id' => $id]);
+        return $this->redirectAfterWrite($request, 'admin_orders_show', 'staff_sales_orders_show', ['id' => $id]);
     }
 
-    #[Route('/{id}/refund', name: 'admin_orders_refund', methods: ['POST'])]
+    #[Route('/admin/orders/{id}/refund', name: 'admin_orders_refund', methods: ['POST'])]
+    #[Route('/staff/sales/orders/{id}/refund', name: 'staff_sales_orders_refund', methods: ['POST'])]
     public function refund(int $id, Request $request, OrderRepository $orderRepository, OrderService $orderService): Response
     {
         $order = $orderRepository->find($id);
@@ -115,10 +133,11 @@ class OrderController extends AbstractController
             $this->addFlash('error', $result['error']);
         }
 
-        return $this->redirectToRoute('admin_orders_show', ['id' => $id]);
+        return $this->redirectAfterWrite($request, 'admin_orders_show', 'staff_sales_orders_show', ['id' => $id]);
     }
 
-    #[Route('/{id}/notes', name: 'admin_orders_notes', methods: ['POST'])]
+    #[Route('/admin/orders/{id}/notes', name: 'admin_orders_notes', methods: ['POST'])]
+    #[Route('/staff/sales/orders/{id}/notes', name: 'staff_sales_orders_notes', methods: ['POST'])]
     public function updateNotes(int $id, Request $request, OrderRepository $orderRepository, EntityManagerInterface $em): Response
     {
         $order = $orderRepository->find($id);
@@ -130,6 +149,31 @@ class OrderController extends AbstractController
         $em->flush();
 
         $this->addFlash('success', 'Notes updated');
-        return $this->redirectToRoute('admin_orders_show', ['id' => $id]);
+        return $this->redirectAfterWrite($request, 'admin_orders_show', 'staff_sales_orders_show', ['id' => $id]);
+    }
+
+    #[Route('/admin/orders/{id}/delete', name: 'admin_orders_delete', methods: ['POST'])]
+    #[Route('/staff/sales/orders/{id}/delete', name: 'staff_sales_orders_delete', methods: ['POST'])]
+    public function delete(
+        int $id,
+        Request $request,
+        OrderRepository $orderRepository,
+        PaymentRepository $paymentRepository,
+        EntityManagerInterface $em
+    ): Response {
+        $order = $orderRepository->find($id);
+        if (!$order) {
+            throw $this->createNotFoundException('Order not found');
+        }
+
+        foreach ($paymentRepository->findBy(['order' => $order]) as $payment) {
+            $em->remove($payment);
+        }
+
+        $em->remove($order);
+        $em->flush();
+
+        $this->addFlash('success', 'Order deleted successfully.');
+        return $this->redirectAfterWrite($request, 'admin_orders', 'staff_sales_orders');
     }
 }

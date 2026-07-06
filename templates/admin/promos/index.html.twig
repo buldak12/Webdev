@@ -1,9 +1,10 @@
-{% extends 'admin/base.html.twig' %}
+{% extends app.request.get('_route') starts with 'staff_' ? 'staff/base.html.twig' : 'admin/base.html.twig' %}
 
 {% block title %}Promo Codes{% endblock %}
 {% block breadcrumb %}Sales / Promo Codes{% endblock %}
 
 {% block body %}
+{% set route_prefix = promos_route_prefix|default('admin_promos') %}
 {% set activeCount = 0 %}
 {% set expiredCount = 0 %}
 {% set totalUses = 0 %}
@@ -21,7 +22,7 @@
 
 <div class="page-header d-flex justify-content-between align-items-center">
     <h1>Promo Codes Management</h1>
-    <a href="{{ path('admin_promos_new') }}" class="btn btn-primary btn-icon" title="Create promo code" aria-label="Create promo code">
+    <a href="{{ path(route_prefix ~ '_new') }}" class="btn btn-primary btn-icon" title="Create promo code" aria-label="Create promo code">
         <i class="bi bi-plus-lg" aria-hidden="true"></i>
         <span class="visually-hidden">Create Promo Code</span>
     </a>
@@ -139,17 +140,17 @@
                             </td>
                             <td>
                                 <div class="d-flex flex-wrap gap-1">
-                                    <a href="{{ path('admin_promos_edit', {id: promo.id}) }}" class="btn btn-sm btn-outline-primary btn-icon" title="Edit promo" aria-label="Edit promo">
+                                    <a href="{{ path(route_prefix ~ '_edit', {id: promo.id}) }}" class="btn btn-sm btn-outline-primary btn-icon" title="Edit promo" aria-label="Edit promo">
                                         <i class="bi bi-pencil-square" aria-hidden="true"></i>
                                         <span class="visually-hidden">Edit</span>
                                     </a>
-                                    <form method="post" action="{{ path('admin_promos_toggle', {id: promo.id}) }}">
+                                    <form method="post" action="{{ path(route_prefix ~ '_toggle', {id: promo.id}) }}">
                                         <button type="submit" class="btn btn-sm btn-outline-{{ promo.isActive ? 'warning' : 'success' }} btn-icon" title="{{ promo.isActive ? 'Disable promo' : 'Enable promo' }}" aria-label="{{ promo.isActive ? 'Disable promo' : 'Enable promo' }}">
                                             <i class="bi {{ promo.isActive ? 'bi-toggle-off' : 'bi-toggle-on' }}" aria-hidden="true"></i>
                                             <span class="visually-hidden">{{ promo.isActive ? 'Disable' : 'Enable' }}</span>
                                         </button>
                                     </form>
-                                    <form method="post" action="{{ path('admin_promos_delete', {id: promo.id}) }}" onsubmit="return confirm('Delete promo code {{ promo.code }}?');">
+                                    <form method="post" action="{{ path(route_prefix ~ '_delete', {id: promo.id}) }}" onsubmit="return confirm('Delete promo code {{ promo.code }}?');">
                                         <button type="submit" class="btn btn-sm btn-outline-danger btn-icon" title="Delete promo" aria-label="Delete promo">
                                             <i class="bi bi-trash" aria-hidden="true"></i>
                                             <span class="visually-hidden">Delete</span>

@@ -1,0 +1,174 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}User Management{% endblock %}
+{% block breadcrumb %}System / User Management{% endblock %}
+
+{% block body %}
+{% set adminCount = 0 %}
+{% set staffCount = 0 %}
+{% set customerCount = 0 %}
+{% set inactiveCount = 0 %}
+
+{% for user in users %}
+    {% if 'ROLE_ADMIN' in user.roles %}
+        {% set adminCount = adminCount + 1 %}
+    {% elseif 'ROLE_STAFF' in user.roles %}
+        {% set staffCount = staffCount + 1 %}
+    {% else %}
+        {% set customerCount = customerCount + 1 %}
+    {% endif %}
+
+    {% if not user.isActive %}
+        {% set inactiveCount = inactiveCount + 1 %}
+    {% endif %}
+{% endfor %}
+
+<div class="page-header d-flex justify-content-between align-items-center">
+    <h1>User Management</h1>
+    <span class="badge bg-dark">{{ users|length }} users loaded</span>
+</div>
+
+{% for flash_message in app.flashes('success') %}
+    <div class="alert alert-success" role="alert">{{ flash_message }}</div>
+{% endfor %}
+{% for flash_message in app.flashes('error') %}
+    <div class="alert alert-danger" role="alert">{{ flash_message }}</div>
+{% endfor %}
+
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card text-center py-3">
+            <div class="h4 mb-0">{{ users|length }}</div>
+            <small class="text-muted">Total Users</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center py-3">
+            <div class="h4 mb-0 text-danger">{{ adminCount }}</div>
+            <small class="text-muted">Admins</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center py-3">
+            <div class="h4 mb-0 text-success">{{ staffCount }}</div>
+            <small class="text-muted">Staff</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center py-3">
+            <div class="h4 mb-0 text-warning">{{ inactiveCount }}</div>
+            <small class="text-muted">Inactive</small>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label">Search</label>
+                <input type="text" name="q" class="form-control" value="{{ current_query }}" placeholder="Name or email">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Role</label>
+                <select class="form-select" name="role">
+                    <option value="all" {{ current_role == 'all' ? 'selected' : '' }}>All Roles</option>
+                    <option value="admin" {{ current_role == 'admin' ? 'selected' : '' }}>Admin</option>
+                    <option value="staff" {{ current_role == 'staff' ? 'selected' : '' }}>Staff</option>
+                    <option value="customer" {{ current_role == 'customer' ? 'selected' : '' }}>Customer</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Status</label>
+                <select class="form-select" name="status">
+                    <option value="all" {{ current_status == 'all' ? 'selected' : '' }}>All Statuses</option>
+                    <option value="active" {{ current_status == 'active' ? 'selected' : '' }}>Active</option>
+                    <option value="inactive" {{ current_status == 'inactive' ? 'selected' : '' }}>Inactive</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">Apply</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>User</th>
+                        <th>Role</th>
+                        <th>Status</th>
+                        <th>Email Verified</th>
+                        <th>Age Status</th>
+                        <th>Created</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                        {% set isAdmin = 'ROLE_ADMIN' in user.roles %}
+                        {% set isStaff = 'ROLE_STAFF' in user.roles %}
+                        <tr>
+                            <td>
+                                <div class="fw-medium">{{ user.fullName }}</div>
+                                <small class="text-muted">{{ user.email }}</small>
+                            </td>
+                            <td>
+                                <form method="post" action="{{ path('admin_users_role', {id: user.id}) }}" class="d-flex gap-2 align-items-center">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('user-role-' ~ user.id) }}">
+                                    <select name="role" class="form-select form-select-sm" style="min-width: 120px;">
+                                        <option value="ROLE_ADMIN" {{ isAdmin ? 'selected' : '' }}>Admin</option>
+                                        <option value="ROLE_STAFF" {{ isStaff ? 'selected' : '' }}>Staff</option>
+                                        <option value="ROLE_CUSTOMER" {{ (not isAdmin and not isStaff) ? 'selected' : '' }}>Customer</option>
+                                    </select>
+                                    <button class="btn btn-sm btn-outline-primary" type="submit">Save</button>
+                                </form>
+                            </td>
+                            <td>
+                                {% if user.isActive %}
+                                    <span class="badge bg-success">Active</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Inactive</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if user.isEmailVerified %}
+                                    <span class="badge bg-success-subtle text-success">Verified</span>
+                                {% else %}
+                                    <span class="badge bg-warning text-dark">Pending</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if user.ageVerificationStatus == 'verified' %}
+                                    <span class="badge bg-success-subtle text-success">Verified</span>
+                                {% elseif user.ageVerificationStatus == 'rejected' %}
+                                    <span class="badge bg-danger">Rejected</span>
+                                {% else %}
+                                    <span class="badge bg-warning text-dark">Pending</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ user.createdAt ? user.createdAt|date('M d, Y') : 'N/A' }}</td>
+                            <td>
+                                <form method="post" action="{{ path('admin_users_toggle', {id: user.id}) }}">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('user-toggle-' ~ user.id) }}">
+                                    <button class="btn btn-sm {{ user.isActive ? 'btn-outline-danger' : 'btn-outline-success' }}" type="submit">
+                                        {{ user.isActive ? 'Deactivate' : 'Activate' }}
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="7" class="text-center py-4 text-muted">No users found for current filters.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

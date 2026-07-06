@@ -25,10 +25,6 @@ class ShopController extends AbstractController
     #[Route('', name: 'shop_index')]
     public function index(Request $request): Response
     {
-        if ($response = $this->denyAdminShoppingAccess()) {
-            return $response;
-        }
-
         $page = max(1, $request->query->getInt('page', 1));
         $limit = 12;
         $sort = $request->query->get('sort', 'name');
@@ -65,10 +61,6 @@ class ShopController extends AbstractController
     #[Route('/category/{slug}', name: 'shop_category')]
     public function category(string $slug, Request $request): Response
     {
-        if ($response = $this->denyAdminShoppingAccess()) {
-            return $response;
-        }
-
         $category = $this->categoryRepository->findBySlug($slug);
         
         if (!$category || !$category->isActive()) {
@@ -112,10 +104,6 @@ class ShopController extends AbstractController
     #[Route('/product/{slug}', name: 'shop_product')]
     public function show(string $slug): Response
     {
-        if ($response = $this->denyAdminShoppingAccess()) {
-            return $response;
-        }
-
         $product = $this->productRepository->findBySlug($slug);
         
         if (!$product || !$product->isActive()) {
@@ -147,10 +135,6 @@ class ShopController extends AbstractController
     #[Route('/search', name: 'shop_search')]
     public function search(Request $request): Response
     {
-        if ($response = $this->denyAdminShoppingAccess()) {
-            return $response;
-        }
-
         $query = trim($request->query->get('q', ''));
         $page = max(1, $request->query->getInt('page', 1));
         $limit = 12;
@@ -178,13 +162,4 @@ class ShopController extends AbstractController
         ]);
     }
 
-    private function denyAdminShoppingAccess(): ?Response
-    {
-        if (!$this->isGranted(User::ROLE_ADMIN)) {
-            return null;
-        }
-
-        $this->addFlash('warning', 'Admin account cannot shop. Please use a customer account for purchases.');
-        return $this->redirectToRoute('admin_dashboard');
-    }
 }

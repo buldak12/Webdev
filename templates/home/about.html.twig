@@ -1,6 +1,6 @@
 {% extends 'customer/base.html.twig' %}
 
-{% block title %}About Us - VapeShop{% endblock %}
+{% block title %}About Us - Easy Vape{% endblock %}
 
 {% block body %}
 {# ============================================
@@ -20,6 +20,9 @@
                 <p class="lead text-white-50">
                     Building the Philippines' most trusted vape shop, one satisfied customer at a time.
                 </p>
+                <a href="#meet-the-team" class="btn btn-light btn-sm px-3 mt-2">
+                    <i class="bi bi-people me-1"></i>Meet the Team
+                </a>
             </div>
             <div class="col-lg-6 text-center d-none d-lg-block">
                 <i class="bi bi-building text-white" style="font-size: 8rem; opacity: 0.15;"></i>
@@ -41,18 +44,19 @@
                 </div>
                 <div class="story-content">
                     <p class="lead text-muted">
-                        VapeShop PH was born from a simple frustration: finding authentic, quality vaping products 
+                        Easy Vape Philippines was born from a simple frustration: finding authentic, quality vaping products 
                         in the Philippines was unnecessarily difficult.
                     </p>
                     <p class="text-muted">
-                        Our founder, a long-time vaping enthusiast, was tired of receiving counterfeit products 
-                        and dealing with unreliable sellers. In 2020, he decided to create the solution he wished existed—a 
+                        Our founder, Justine Preciado, a tech innovator and long-time vaping enthusiast, was tired of receiving counterfeit products 
+                        and dealing with unreliable sellers. In 2020, Justine decided to create the solution that was needed—a 
                         trustworthy online store that prioritizes product authenticity and customer satisfaction.
                     </p>
                     <p class="text-muted">
                         What started as a small operation from a garage has grown into one of the Philippines' 
-                        premier vape retailers. We've served over 10,000 customers and continue to grow every day, 
-                        but our core values remain the same: authenticity, quality, and customer care.
+                        premier vape retailers. We've served over 10,000 customers and continue to grow every day. In 2024, we launched 
+                        the Divino mobile app to bring the Easy Vape experience directly to our customers' phones. Our core values remain 
+                        the same: authenticity, quality, and customer care.
                     </p>
                 </div>
             </div>
@@ -119,33 +123,94 @@
 {# ============================================
    MEET THE TEAM SECTION
    ============================================ #}
-<section class="py-5">
+<section id="meet-the-team" class="py-5">
     <div class="container">
         <div class="text-center mb-5">
             <h2 class="h3 fw-bold">Meet the Team</h2>
-            <p class="text-muted">The passionate people behind VapeShop</p>
+            <p class="text-muted">The passionate people behind Easy Vape</p>
         </div>
-        <div class="row g-4 justify-content-center">
-            {% for member in team %}
-                <div class="col-md-6 col-lg-3">
-                    <div class="card h-100 border-0 shadow-sm team-card">
-                        <div class="card-body text-center p-4">
-                            <div class="team-avatar mb-3">
-                                {% if member.image %}
-                                    <img src="{{ asset(member.image) }}" alt="{{ member.name }}" class="rounded-circle">
-                                {% else %}
-                                    <div class="avatar-placeholder">
-                                        <i class="bi bi-person"></i>
-                                    </div>
-                                {% endif %}
+        {% if team is not empty %}
+            <div class="row g-4 justify-content-center">
+                {% for member in team %}
+                    <div class="col-md-6 col-lg-3">
+                        <div class="card h-100 border-0 shadow-sm team-card">
+                            <div class="card-body text-center p-4">
+                                <div class="team-avatar mb-3">
+                                    {% if member.image %}
+                                        <img src="{{ asset(member.image) }}" alt="{{ member.name }}" class="rounded-circle">
+                                    {% else %}
+                                        <div class="avatar-placeholder">
+                                            <i class="bi bi-person"></i>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <h5 class="fw-semibold mb-1">{{ member.name }}</h5>
+                                <small class="text-primary d-block mb-3">{{ member.role }}</small>
+                                <p class="text-muted small mb-0">{{ member.bio }}</p>
                             </div>
-                            <h5 class="fw-semibold mb-1">{{ member.name }}</h5>
-                            <small class="text-primary d-block mb-3">{{ member.role }}</small>
-                            <p class="text-muted small mb-0">{{ member.bio }}</p>
                         </div>
                     </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="text-center">
+                <p class="text-muted mb-0">Our team profiles are coming soon.</p>
+            </div>
+        {% endif %}
+    </div>
+</section>
+
+{# ============================================
+   DIVINO MOBILE APP SECTION
+   ============================================ #}
+<section class="py-5 bg-light">
+    <div class="container">
+        <div class="text-center mb-5">
+            <h2 class="h3 fw-bold">Introducing Divino</h2>
+            <p class="text-muted">Our mobile-first solution for vaping enthusiasts</p>
+        </div>
+        <div class="row align-items-center g-5">
+            <div class="col-lg-6">
+                <h3 class="fw-bold mb-4">Shopping Made Seamless</h3>
+                <p class="text-muted mb-3">
+                    In 2024, we launched Divino—a cutting-edge React Native mobile app designed to bring the Easy Vape 
+                    experience directly to your smartphone. Built by our talented development team, Divino combines beautiful 
+                    design with powerful features.
+                </p>
+                <div class="app-benefits">
+                    <div class="benefit-item mb-3">
+                        <i class="bi bi-check2-circle text-success me-2"></i>
+                        <span><strong>One-Tap Checkout</strong> — Complete your purchase in seconds</span>
+                    </div>
+                    <div class="benefit-item mb-3">
+                        <i class="bi bi-check2-circle text-success me-2"></i>
+                        <span><strong>Push Notifications</strong> — Stay updated on orders and new arrivals</span>
+                    </div>
+                    <div class="benefit-item mb-3">
+                        <i class="bi bi-check2-circle text-success me-2"></i>
+                        <span><strong>Secure Payment</strong> — Bank-level encryption protects your data</span>
+                    </div>
+                    <div class="benefit-item">
+                        <i class="bi bi-check2-circle text-success me-2"></i>
+                        <span><strong>Exclusive App Deals</strong> — Special prices available only in Divino</span>
+                    </div>
                 </div>
-            {% endfor %}
+                <div class="d-flex gap-3 mt-5">
+                    <a href="#" class="btn btn-dark">
+                        <i class="bi bi-apple me-2"></i>App Store
+                    </a>
+                    <a href="#" class="btn btn-dark">
+                        <i class="bi bi-google me-2"></i>Google Play
+                    </a>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="divino-mockup text-center">
+                    <div class="phone-demo">
+                        <img src="https://via.placeholder.com/300x600/7c3aed/ffffff?text=Divino+App" alt="Divino App" class="img-fluid rounded-4" style="max-width: 100%; height: auto;">
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </section>
@@ -185,7 +250,7 @@
             <div class="col-lg-8 text-center">
                 <h2 class="h3 fw-bold mb-3">Ready to Experience the Difference?</h2>
                 <p class="text-muted mb-4">
-                    Join thousands of satisfied customers who trust VapeShop for their vaping needs.
+                    Join thousands of satisfied customers who trust Easy Vape for their vaping needs.
                 </p>
                 <div class="d-flex justify-content-center gap-3">
                     <a href="{{ path('shop_index') }}" class="btn btn-dark btn-lg">
@@ -235,6 +300,38 @@
     height: 100%;
     object-fit: cover;
 }
+
+/* Divino App Section */
+.app-benefits {
+    margin: 0;
+}
+
+.benefit-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    font-size: 0.95rem;
+}
+
+.benefit-item i {
+    font-size: 1.25rem;
+    flex-shrink: 0;
+    margin-top: 0.15rem;
+}
+
+.divino-mockup {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 400px;
+}
+
+.phone-demo {
+    position: relative;
+    display: inline-block;
+    filter: drop-shadow(0 10px 30px rgba(0, 0, 0, 0.15));
+}
+
 .avatar-placeholder {
     width: 100%;
     height: 100%;

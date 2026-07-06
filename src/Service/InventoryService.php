@@ -52,13 +52,13 @@ class InventoryService
         return true;
     }
 
-    public function addStock(ProductVariant $variant, int $quantity, string $reason = null): void
+    public function addStock(ProductVariant $variant, int $quantity, ?string $reason = null): void
     {
         $variant->addStock($quantity);
         $this->entityManager->flush();
     }
 
-    public function getLowStockVariants(int $threshold = null): array
+    public function getLowStockVariants(?int $threshold = null): array
     {
         return $this->variantRepository->findLowStock($threshold);
     }
@@ -78,8 +78,14 @@ class InventoryService
     {
         $lowStock = $this->variantRepository->findLowStock();
         $outOfStock = $this->variantRepository->findOutOfStock();
+        $overview = $this->variantRepository->getStockOverview();
 
         return [
+            'variant_count' => $overview['variant_count'],
+            'product_count' => $overview['product_count'],
+            'total_stock' => $overview['total_stock'],
+            'reserved_stock' => $overview['reserved_stock'],
+            'available_stock' => $overview['available_stock'],
             'low_stock_count' => count($lowStock),
             'out_of_stock_count' => count($outOfStock),
             'low_stock_items' => $lowStock,

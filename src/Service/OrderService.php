@@ -28,7 +28,7 @@ class OrderService
         private ?LoggerInterface $logger = null
     ) {}
 
-    public function createOrderFromCart(Cart $cart, User $user, Address $shippingAddress, Address $billingAddress = null): Order
+    public function createOrderFromCart(Cart $cart, User $user, Address $shippingAddress, ?Address $billingAddress = null): Order
     {
         if ($cart->isEmpty()) {
             throw new \InvalidArgumentException('Cannot create order from empty cart');
@@ -92,9 +92,6 @@ class OrderService
             $orderItem = OrderItem::createFromCartItem($cartItem);
             $order->addItem($orderItem);
             $this->entityManager->persist($orderItem);
-
-            // Reserve stock
-            $this->inventoryService->reserveStock($cartItem->getVariant(), $cartItem->getQuantity());
         }
 
         // Create shipment
@@ -165,7 +162,7 @@ class OrderService
         ]);
     }
 
-    public function cancelOrder(Order $order, string $reason = null): void
+    public function cancelOrder(Order $order, ?string $reason = null): void
     {
         if (!$order->isCancellable()) {
             throw new \InvalidArgumentException('Order cannot be cancelled');
@@ -189,7 +186,7 @@ class OrderService
         ]);
     }
 
-    public function refundOrder(Order $order, string $reason = null): array
+    public function refundOrder(Order $order, ?string $reason = null): array
     {
         if (!$order->isRefundable()) {
             return ['success' => false, 'error' => 'Order is not refundable'];
@@ -240,7 +237,7 @@ class OrderService
         $this->entityManager->flush();
     }
 
-    public function markAsReadyToShip(Order $order, User $packedBy = null): void
+    public function markAsReadyToShip(Order $order, ?User $packedBy = null): void
     {
         if ($order->getStatus() !== Order::STATUS_PROCESSING) {
             throw new \InvalidArgumentException('Only processing orders can be marked as ready to ship');

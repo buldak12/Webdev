@@ -42,9 +42,33 @@
     </div>
     <div class="col-xl-3 col-md-6">
         <div class="card stat-card">
-            <div class="stat-label mb-1">Needs Attention</div>
-            <div class="stat-value">{{ pendingOrders + (pending_verifications|length) }}</div>
-            <small class="text-warning">{{ pendingOrders }} pending orders, {{ pending_verifications|length }} verifications</small>
+            <div class="stat-label mb-1">Inventory</div>
+            <div class="stat-value">{{ inventory_summary.available_stock }}</div>
+            <small class="text-muted">{{ inventory_summary.reserved_stock }} reserved / {{ inventory_summary.total_stock }} total</small>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-xl-4 col-md-6">
+        <div class="card stat-card">
+            <div class="stat-label mb-1">Products</div>
+            <div class="stat-value">{{ product_count }}</div>
+            <small class="text-muted">{{ inventory_summary.variant_count }} active variants</small>
+        </div>
+    </div>
+    <div class="col-xl-4 col-md-6">
+        <div class="card stat-card">
+            <div class="stat-label mb-1">Low Stock</div>
+            <div class="stat-value">{{ inventory_summary.low_stock_count }}</div>
+            <small class="text-muted">Variants needing restock</small>
+        </div>
+    </div>
+    <div class="col-xl-4 col-md-6">
+        <div class="card stat-card">
+            <div class="stat-label mb-1">Out of Stock</div>
+            <div class="stat-value">{{ inventory_summary.out_of_stock_count }}</div>
+            <small class="text-muted">Unavailable variants</small>
         </div>
     </div>
 </div>

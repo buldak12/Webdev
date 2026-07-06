@@ -4,8 +4,10 @@ namespace App\Controller\Admin;
 
 use App\Repository\AgeVerificationRepository;
 use App\Repository\OrderRepository;
+use App\Repository\ProductRepository;
 use App\Repository\ProductVariantRepository;
 use App\Repository\UserRepository;
+use App\Service\InventoryService;
 use App\Service\OrderService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
@@ -20,7 +22,9 @@ class DashboardController extends AbstractController
         UserRepository $userRepository,
         ProductVariantRepository $variantRepository,
         AgeVerificationRepository $ageVerificationRepository,
-        OrderService $orderService
+        OrderService $orderService,
+        InventoryService $inventoryService,
+        ProductRepository $productRepository
     ): Response {
         // Get date ranges
         $today = new \DateTime('today');
@@ -38,6 +42,10 @@ class DashboardController extends AbstractController
         
         // Low stock alerts
         $lowStockVariants = $variantRepository->findLowStock();
+
+        // Inventory overview
+        $inventorySummary = $inventoryService->getStockSummary();
+        $productCount = $productRepository->count([]);
         
         // Pending age verifications
         $pendingVerifications = $ageVerificationRepository->findPending();
@@ -57,6 +65,8 @@ class DashboardController extends AbstractController
             'pending_verifications' => array_slice($pendingVerifications, 0, 5),
             'regional_sales' => $regionalSales,
             'customer_count' => $customerCount,
+            'inventory_summary' => $inventorySummary,
+            'product_count' => $productCount,
         ]);
     }
 }

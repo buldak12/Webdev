@@ -35,10 +35,6 @@ class CheckoutController extends AbstractController
     #[Route('', name: 'checkout_index')]
     public function index(Request $request): Response
     {
-        if ($response = $this->denyAdminShoppingAccess()) {
-            return $response;
-        }
-
         /** @var User $user */
         $user = $this->getUser();
         $cart = $this->cartService->getCart($user);
@@ -122,10 +118,6 @@ class CheckoutController extends AbstractController
     #[Route('/place-order', name: 'checkout_place_order', methods: ['POST'])]
     public function placeOrder(Request $request): Response
     {
-        if ($response = $this->denyAdminShoppingAccess()) {
-            return $response;
-        }
-
         /** @var User $user */
         $user = $this->getUser();
         $cart = $this->cartService->getCart($user);
@@ -153,7 +145,7 @@ class CheckoutController extends AbstractController
             $order = $this->orderService->createOrderFromCart($cart, $user, $address);
             
             // Clear the cart
-            $this->cartService->clearCart($cart);
+            $this->cartService->clearCart($cart, false);
             
             // Process payment
             $paymentResult = $this->orderService->processPayment($order, $paymentGateway);
@@ -193,10 +185,6 @@ class CheckoutController extends AbstractController
     #[Route('/success/{order}', name: 'checkout_success')]
     public function success(int $order): Response
     {
-        if ($response = $this->denyAdminShoppingAccess()) {
-            return $response;
-        }
-
         /** @var User $user */
         $user = $this->getUser();
         
@@ -211,15 +199,5 @@ class CheckoutController extends AbstractController
             'categories_menu' => $this->categoryRepository->findActive(),
             'cart_count' => 0,
         ]);
-    }
-
-    private function denyAdminShoppingAccess(): ?Response
-    {
-        if (!$this->isGranted(User::ROLE_ADMIN)) {
-            return null;
-        }
-
-        $this->addFlash('warning', 'Admin account cannot shop. Please use a customer account for purchases.');
-        return $this->redirectToRoute('admin_dashboard');
     }
 }

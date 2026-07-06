@@ -1,9 +1,10 @@
-{% extends 'admin/base.html.twig' %}
+{% extends app.request.get('_route') starts with 'staff_' ? 'staff/base.html.twig' : 'admin/base.html.twig' %}
 
 {% block title %}Inventory{% endblock %}
 {% block breadcrumb %}Catalog / Inventory{% endblock %}
 
 {% block body %}
+{% set route_prefix = inventory_route_prefix|default('admin_inventory') %}
 {% set totalSkuCount = 0 %}
 {% set totalStockValue = 0 %}
 {% set totalReserved = 0 %}
@@ -79,11 +80,11 @@
         <div class="inventory-counter">Realtime stock overview with quick adjustments and threshold controls.</div>
     </div>
     <div class="d-flex gap-2">
-        <a href="{{ path('admin_products') }}" class="btn btn-outline-secondary btn-icon" title="Manage products" aria-label="Manage products">
+        <a href="{{ path('staff_products') }}" class="btn btn-outline-secondary btn-icon" title="Manage products" aria-label="Manage products">
             <i class="bi bi-boxes" aria-hidden="true"></i>
             <span class="visually-hidden">Manage Products</span>
         </a>
-        <a href="{{ path('admin_inventory', {filter: 'low'}) }}" class="btn btn-outline-primary btn-icon" title="View low stock" aria-label="View low stock">
+        <a href="{{ path(route_prefix, {filter: 'low'}) }}" class="btn btn-outline-primary btn-icon" title="View low stock" aria-label="View low stock">
             <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
             <span class="visually-hidden">View Low Stock</span>
         </a>
@@ -184,7 +185,7 @@
         <span class="me-2"><strong>Alert:</strong></span>
         <div>
             {{ summary.low_stock_count }} low-stock and {{ summary.out_of_stock_count }} out-of-stock variant(s) need attention.
-            <a href="{{ path('admin_inventory', {filter: 'low'}) }}" class="alert-link">Focus low stock</a>
+            <a href="{{ path(route_prefix, {filter: 'low'}) }}" class="alert-link">Focus low stock</a>
         </div>
     </div>
 {% else %}
@@ -258,7 +259,7 @@
                                 <div class="variant-meta mt-1">Threshold {{ variant.lowStockThreshold }}</div>
                             </td>
                             <td>
-                                <form method="post" action="{{ path('admin_inventory_threshold', {id: variant.id}) }}" class="d-flex gap-1 align-items-center">
+                                <form method="post" action="{{ path(route_prefix ~ '_threshold', {id: variant.id}) }}" class="d-flex gap-1 align-items-center">
                                     <input type="number" class="form-control form-control-sm" style="max-width: 80px;" name="threshold" min="0" value="{{ variant.lowStockThreshold }}">
                                     <button type="submit" class="btn btn-sm btn-outline-secondary btn-icon" title="Save threshold" aria-label="Save threshold">
                                         <i class="bi bi-check-lg" aria-hidden="true"></i>
@@ -270,7 +271,7 @@
                             <td>₱{{ (variant.stock * variant.price)|number_format(2) }}</td>
                             <td>
                                 <div class="d-flex flex-column gap-1">
-                                    <form method="post" action="{{ path('admin_inventory_update', {id: variant.id}) }}" class="d-flex gap-1">
+                                    <form method="post" action="{{ path(route_prefix ~ '_update', {id: variant.id}) }}" class="d-flex gap-1">
                                         <input type="hidden" name="action" value="set">
                                         <input type="number" class="form-control form-control-sm" style="max-width: 78px;" name="quantity" min="0" value="{{ variant.stock }}">
                                         <button type="submit" class="btn btn-sm btn-outline-primary btn-icon" title="Set stock" aria-label="Set stock">
@@ -279,7 +280,7 @@
                                         </button>
                                     </form>
                                     <div class="d-flex gap-1">
-                                        <form method="post" action="{{ path('admin_inventory_update', {id: variant.id}) }}">
+                                        <form method="post" action="{{ path(route_prefix ~ '_update', {id: variant.id}) }}">
                                             <input type="hidden" name="action" value="add">
                                             <input type="hidden" name="quantity" value="10">
                                             <button type="submit" class="btn btn-sm btn-outline-success btn-icon" title="Add 10 stock" aria-label="Add 10 stock">
@@ -287,7 +288,7 @@
                                                 <span class="visually-hidden">Add 10</span>
                                             </button>
                                         </form>
-                                        <form method="post" action="{{ path('admin_inventory_update', {id: variant.id}) }}">
+                                        <form method="post" action="{{ path(route_prefix ~ '_update', {id: variant.id}) }}">
                                             <input type="hidden" name="action" value="deduct">
                                             <input type="hidden" name="quantity" value="5">
                                             <button type="submit" class="btn btn-sm btn-outline-danger btn-icon" title="Deduct 5 stock" aria-label="Deduct 5 stock">

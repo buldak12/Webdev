@@ -21,7 +21,7 @@ security:
             form_login:
                 login_path: app_login
                 check_path: app_login
-                default_target_path: /admin
+                default_target_path: /dashboard
                 enable_csrf: true
             logout:
                 path: app_logout
@@ -41,6 +41,13 @@ security:
 
     # Note: Only the *first* matching rule is applied
     access_control:
+        - { path: ^/dashboard, roles: ROLE_USER }
+        - { path: ^/admin/products, roles: ROLE_STAFF }
+        - { path: ^/admin/categories, roles: ROLE_STAFF }
+        - { path: ^/admin/inventory, roles: ROLE_STAFF }
+        - { path: ^/admin/orders, roles: ROLE_STAFF }
+        - { path: ^/admin/customers, roles: ROLE_STAFF }
+        - { path: ^/admin/promos, roles: ROLE_STAFF }
         - { path: ^/admin, roles: ROLE_ADMIN }
         - { path: ^/staff, roles: ROLE_STAFF }
         - { path: ^/oauth/google, roles: PUBLIC_ACCESS }

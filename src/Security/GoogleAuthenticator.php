@@ -24,8 +24,8 @@ use Symfony\Component\Security\Http\EntryPoint\AuthenticationEntryPointInterface
  * Google OAuth authenticator for STAFF login only.
  * 
  * This authenticator:
- * 1. Only allows existing staff members to log in via Google
- * 2. Verifies the email matches a staff account
+ * 1. Allows Google users to sign in through staff flow
+ * 2. Ensures Google users are assigned ROLE_STAFF
  * 3. Auto-verifies email on successful OAuth login
  */
 class GoogleAuthenticator extends OAuth2Authenticator implements AuthenticationEntryPointInterface
@@ -39,7 +39,10 @@ class GoogleAuthenticator extends OAuth2Authenticator implements AuthenticationE
 
     public function supports(Request $request): ?bool
     {
-        return $request->attributes->get('_route') === 'oauth_google_check';
+        $route = $request->attributes->get('_route');
+        $flow = $request->getSession()->get('oauth_login_flow');
+
+        return $route === 'oauth_google_check' && $flow !== 'customer';
     }
 
     public function authenticate(Request $request): Passport
@@ -57,27 +60,26 @@ class GoogleAuthenticator extends OAuth2Authenticator implements AuthenticationE
                 $user = $this->userRepository->findOneBy(['email' => $email]);
 
                 if (!$user) {
-                    throw new CustomUserMessageAuthenticationException(
-                        'No staff account found with this email. Google login is only available for existing staff members.'
-                    );
+                    // Auto-provision Google users as staff accounts.
+                    $user = new User();
+                    $user->setEmail($email);
+                    $user->setFirstName($googleUser->getFirstName() ?: 'Staff');
+                    $user->setLastName($googleUser->getLastName() ?: 'User');
+                    $user->setPassword(bin2hex(random_bytes(32)));
+                    $this->em->persist($user);
                 }
 
-                // Check if user has staff or admin role
-                $roles = $user->getRoles();
-                $isStaffOrAdmin = in_array(User::ROLE_STAFF, $roles) || in_array(User::ROLE_ADMIN, $roles);
-
-                if (!$isStaffOrAdmin) {
-                    throw new CustomUserMessageAuthenticationException(
-                        'Google login is only available for staff members. Please use the standard login form.'
-                    );
-                }
+                $user->setRoles([User::ROLE_STAFF]);
+                $user->setIsActive(true);
+                $user->setGoogleId($googleUser->getId());
 
                 // Auto-verify email on OAuth login
                 if (!$user->isEmailVerified()) {
                     $user->setIsEmailVerified(true);
                     $user->setEmailVerificationToken(null);
-                    $this->em->flush();
                 }
+
+                $this->em->flush();
 
                 return $user;
             })
@@ -86,19 +88,14 @@ class GoogleAuthenticator extends OAuth2Authenticator implements AuthenticationE
 
     public function onAuthenticationSuccess(Request $request, TokenInterface $token, string $firewallName): ?Response
     {
-        /** @var User $user */
-        $user = $token->getUser();
-
-        // Redirect based on role
-        if (in_array(User::ROLE_ADMIN, $user->getRoles())) {
-            return new RedirectResponse($this->router->generate('admin_dashboard'));
-        }
+        $request->getSession()->remove('oauth_login_flow');
 
         return new RedirectResponse($this->router->generate('staff_dashboard'));
     }
 
     public function onAuthenticationFailure(Request $request, AuthenticationException $exception): ?Response
     {
+        $request->getSession()->remove('oauth_login_flow');
         $request->getSession()->getFlashBag()->add('error', $exception->getMessage());
         return new RedirectResponse($this->router->generate('staff_login'));
     }
