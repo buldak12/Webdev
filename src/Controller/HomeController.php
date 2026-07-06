@@ -107,4 +107,10 @@ class HomeController extends AbstractController
             'submitted' => $submitted,
         ]);
     }
+
+    #[Route('/healthz', name: 'app_healthz')]
+    public function healthz(): Response
+    {
+        return new Response('ok', Response::HTTP_OK, ['Content-Type' => 'text/plain']);
+    }
 }
