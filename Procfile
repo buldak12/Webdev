@@ -1,1 +1,1 @@
-web: php -S 0.0.0.0:${PORT:-8000} -t public
+web: APP_ENV=prod APP_DEBUG=0 php bin/console cache:clear --env=prod --no-warmup && APP_ENV=prod APP_DEBUG=0 php bin/console doctrine:database:create --if-not-exists && APP_ENV=prod APP_DEBUG=0 php bin/console doctrine:migrations:migrate --no-interaction && APP_ENV=prod APP_DEBUG=0 php -S 0.0.0.0:${PORT:-8000} -t public
