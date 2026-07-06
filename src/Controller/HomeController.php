@@ -66,7 +66,7 @@ class HomeController extends AbstractController
             [
                 'name' => 'Alex Rivera',
                 'role' => 'Mobile App Lead',
-                'bio' => 'Full-stack developer building the Divino mobile app. Focused on delivering an intuitive, fast, and secure shopping experience.',
+                'bio' => 'Full-stack developer building the Preciado mobile app. Focused on delivering an intuitive, fast, and secure shopping experience.',
                 'image' => null,
             ],
             [
