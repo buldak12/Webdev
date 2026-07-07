@@ -36,8 +36,9 @@ security:
 
     # Role hierarchy
     role_hierarchy:
-        ROLE_STAFF: ROLE_CUSTOMER
-        ROLE_ADMIN: ROLE_STAFF
+        ROLE_USER: ROLE_CUSTOMER
+        ROLE_STAFF: [ROLE_CUSTOMER, ROLE_USER]
+        ROLE_ADMIN: [ROLE_STAFF, ROLE_USER]
 
     # Note: Only the *first* matching rule is applied
     access_control:
