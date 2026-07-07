@@ -4,7 +4,7 @@
     "builder": "NIXPACKS"
   },
   "deploy": {
-    "startCommand": "php bin/console cache:clear --env=prod --no-warmup && php bin/console doctrine:database:create --if-not-exists && php bin/console doctrine:migrations:migrate --no-interaction && php bin/console app:create-admin admin@vapeshop.ph admin123 && php -S 0.0.0.0:$PORT -t public",
+    "startCommand": "php bin/console cache:clear --env=prod --no-warmup && php bin/console doctrine:database:create --if-not-exists && php bin/console doctrine:migrations:migrate --no-interaction && php bin/console app:create-admin ${ADMIN_EMAIL:-admin@vapeshop.ph} ${ADMIN_PASSWORD:-newadminpass123} && php -S 0.0.0.0:$PORT -t public",
     "healthcheckPath": "/healthz",
     "healthcheckTimeout": 100
   }
