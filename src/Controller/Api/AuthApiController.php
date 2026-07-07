@@ -4,6 +4,7 @@ namespace App\Controller\Api;
 
 use App\Entity\User;
 use App\Repository\UserRepository;
+use App\Service\ActivityLogService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -24,7 +25,8 @@ class AuthApiController extends AbstractController
         Request $request,
         UserRepository $userRepository,
         UserPasswordHasherInterface $passwordHasher,
-        EntityManagerInterface $em
+        EntityManagerInterface $em,
+        ActivityLogService $activityLogService
     ): JsonResponse {
         $data = json_decode($request->getContent(), true);
 
@@ -38,6 +40,15 @@ class AuthApiController extends AbstractController
 
         // Check if email exists
         if ($userRepository->findOneBy(['email' => $data['email']])) {
+            // Log registration attempt with existing email
+            $activityLogService->logActivityFromRequest(
+                null,
+                'REGISTRATION_FAILED: ' . $data['email'],
+                $request,
+                'api_auth_register',
+                ['reason' => 'Email already exists', 'email' => $data['email']]
+            );
+
             return $this->json(
                 ['error' => 'Email already registered'],
                 Response::HTTP_CONFLICT
@@ -58,6 +69,15 @@ class AuthApiController extends AbstractController
         $em->persist($user);
         $em->flush();
 
+        // Log successful registration from mobile app
+        $activityLogService->logActivityFromRequest(
+            $user,
+            'REGISTRATION_SUCCESSFUL (Mobile App)',
+            $request,
+            'api_auth_register',
+            ['email' => $user->getEmail()]
+        );
+
         return $this->json([
             'message' => 'User registered successfully',
             'user' => $this->serializeUser($user),
@@ -72,7 +92,8 @@ class AuthApiController extends AbstractController
     public function login(
         Request $request,
         UserRepository $userRepository,
-        UserPasswordHasherInterface $passwordHasher
+        UserPasswordHasherInterface $passwordHasher,
+        ActivityLogService $activityLogService
     ): JsonResponse {
         $data = json_decode($request->getContent(), true);
 
@@ -86,6 +107,15 @@ class AuthApiController extends AbstractController
         $user = $userRepository->findOneBy(['email' => $data['email']]);
 
         if (!$user || !$passwordHasher->isPasswordValid($user, $data['password'])) {
+            // Log failed login attempt (without user actor since auth failed)
+            $activityLogService->logActivityFromRequest(
+                null,
+                'LOGIN_FAILED: ' . ($data['email'] ?? 'unknown'),
+                $request,
+                'api_auth_login',
+                ['reason' => 'Invalid credentials', 'email' => $data['email'] ?? null]
+            );
+
             return $this->json(
                 ['error' => 'Invalid credentials'],
                 Response::HTTP_UNAUTHORIZED
@@ -93,6 +123,15 @@ class AuthApiController extends AbstractController
         }
 
         if (!$user->isActive()) {
+            // Log login attempt for inactive account
+            $activityLogService->logActivityFromRequest(
+                $user,
+                'LOGIN_FAILED_INACTIVE',
+                $request,
+                'api_auth_login',
+                ['reason' => 'Account is inactive']
+            );
+
             return $this->json(
                 ['error' => 'Account is inactive'],
                 Response::HTTP_FORBIDDEN
@@ -101,6 +140,15 @@ class AuthApiController extends AbstractController
 
         // Generate a simple token (in production, use JWT)
         $token = bin2hex(random_bytes(32));
+
+        // Log successful login from mobile app
+        $activityLogService->logActivityFromRequest(
+            $user,
+            'LOGIN_SUCCESSFUL (Mobile App)',
+            $request,
+            'api_auth_login',
+            ['method' => 'email_password']
+        );
         
         return $this->json([
             'message' => 'Login successful',
@@ -164,6 +212,33 @@ class AuthApiController extends AbstractController
         return $this->json([
             'message' => 'Profile updated',
             'user' => $this->serializeUser($user),
+        ]);
+    }
+
+    /**
+     * Logout user and log the activity
+     * POST /api/auth/logout
+     */
+    #[Route('/logout', name: 'api_auth_logout', methods: ['POST'])]
+    public function logout(
+        Request $request,
+        ActivityLogService $activityLogService
+    ): JsonResponse {
+        $user = $this->getUser();
+
+        if ($user) {
+            // Log successful logout from mobile app
+            $activityLogService->logActivityFromRequest(
+                $user,
+                'LOGOUT_SUCCESSFUL (Mobile App)',
+                $request,
+                'api_auth_logout',
+                []
+            );
+        }
+
+        return $this->json([
+            'message' => 'Logout successful',
         ]);
     }
 
