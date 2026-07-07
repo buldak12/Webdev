@@ -1,0 +1,127 @@
+{% extends app.request.get('_route') starts with 'staff_' ? 'staff/base.html.twig' : 'admin/base.html.twig' %}
+
+{% block title %}Create New Customer{% endblock %}
+{% block breadcrumb %}Sales / Customers / New{% endblock %}
+
+{% block body %}
+{% set route_prefix = customers_route_prefix|default('admin_customers') %}
+<div class="page-header d-flex justify-content-between align-items-center">
+    <h1>Create New Customer</h1>
+    <a href="{{ path(route_prefix) }}" class="btn btn-outline-secondary btn-icon" title="Back to customers" aria-label="Back to customers">
+        <i class="bi bi-arrow-left" aria-hidden="true"></i>
+        <span class="visually-hidden">Back to Customers</span>
+    </a>
+</div>
+
+<form method="post" id="customerForm">
+    <div class="row">
+        <!-- Main Content -->
+        <div class="col-lg-8">
+            <!-- Basic Information -->
+            <div class="card mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Basic Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">First Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="first_name" placeholder="e.g., Juan" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Last Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="last_name" placeholder="e.g., Dela Cruz" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Email <span class="text-danger">*</span></label>
+                        <input type="email" class="form-control" name="email" placeholder="customer@example.com" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Phone (optional)</label>
+                        <input type="tel" class="form-control" name="phone" placeholder="+63 9XX XXX XXXX">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Account Security -->
+            <div class="card mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Account Security</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Password <span class="text-danger">*</span></label>
+                        <input type="password" class="form-control" name="password" placeholder="••••••••" required minlength="8">
+                        <small class="form-text text-muted">Minimum 8 characters</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Age Verification -->
+            <div class="card mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Age Verification</h5>
+                </div>
+                <div class="card-body">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" name="age_verified" id="ageVerified">
+                        <label class="form-check-label" for="ageVerified">
+                            Mark customer as age verified (18+)
+                        </label>
+                    </div>
+                    <small class="form-text text-muted d-block mt-2">
+                        If checked, the customer can immediately purchase age-restricted products. 
+                        If unchecked, they will need to complete age verification first.
+                    </small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <!-- Form Actions -->
+            <div class="card sticky-top" style="top: 20px;">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Create Customer</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-icon" title="Create customer" aria-label="Create customer">
+                            <i class="bi bi-check-lg" aria-hidden="true"></i>
+                            <span class="visually-hidden">Create Customer</span>
+                        </button>
+                        <a href="{{ path(route_prefix) }}" class="btn btn-outline-secondary btn-icon" title="Cancel" aria-label="Cancel">
+                            <i class="bi bi-x-lg" aria-hidden="true"></i>
+                            <span class="visually-hidden">Cancel</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Info Box -->
+            <div class="card mt-3">
+                <div class="card-body">
+                    <h6 class="card-title">Account Status</h6>
+                    <p class="small text-muted mb-0">
+                        New customers will be:
+                        <ul class="small text-muted mt-2 mb-0">
+                            <li>Set to <strong>active</strong></li>
+                            <li>Email marked as <strong>verified</strong></li>
+                            <li>Assigned role: <strong>ROLE_CUSTOMER</strong></li>
+                        </ul>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+<style>
+.sticky-top {
+    position: sticky !important;
+}
+</style>
+{% endblock %}

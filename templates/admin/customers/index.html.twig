@@ -27,10 +27,16 @@
 
 <div class="page-header d-flex justify-content-between align-items-center">
     <h1>Customers Management</h1>
-    <button class="btn btn-outline-secondary btn-icon" title="Export customers" aria-label="Export customers" disabled>
-        <i class="bi bi-download" aria-hidden="true"></i>
-        <span class="visually-hidden">Export</span>
-    </button>
+    <div class="d-flex gap-2">
+        <a href="{{ path(route_prefix ~ '_new') }}" class="btn btn-primary btn-icon" title="Create new customer" aria-label="Create new customer">
+            <i class="bi bi-plus-lg" aria-hidden="true"></i>
+            <span class="visually-hidden">New Customer</span>
+        </a>
+        <button class="btn btn-outline-secondary btn-icon" title="Export customers" aria-label="Export customers" disabled>
+            <i class="bi bi-download" aria-hidden="true"></i>
+            <span class="visually-hidden">Export</span>
+        </button>
+    </div>
 </div>
 
 <div class="row g-3 mb-4">

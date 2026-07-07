@@ -11,6 +11,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Annotation\Route;
 
 class CustomerController extends AbstractController
@@ -42,6 +43,60 @@ class CustomerController extends AbstractController
         return $this->render('admin/customers/index.html.twig', [
             'customers' => $customers,
             'current_status' => $status,
+            'customers_route_prefix' => str_starts_with((string) $request->attributes->get('_route', ''), 'staff_customers') ? 'staff_customers' : 'admin_customers',
+        ]);
+    }
+
+    #[Route('/admin/customers/new', name: 'admin_customers_new')]
+    #[Route('/staff/customers/new', name: 'staff_customers_new')]
+    public function new(Request $request, UserRepository $userRepository, UserPasswordHasherInterface $passwordHasher, EntityManagerInterface $em): Response
+    {
+        if ($request->isMethod('POST')) {
+            $email = $request->request->get('email');
+            $firstName = $request->request->get('first_name');
+            $lastName = $request->request->get('last_name');
+            $phone = $request->request->get('phone');
+            $password = $request->request->get('password');
+            $ageVerified = $request->request->getBoolean('age_verified', false);
+
+            // Validate
+            if (!$email || !$firstName || !$lastName || !$password) {
+                $this->addFlash('error', 'Email, first name, last name, and password are required.');
+                return $this->redirectAfterWrite($request, 'admin_customers_new', 'staff_customers_new');
+            }
+
+            // Check if email exists
+            if ($userRepository->findOneBy(['email' => $email])) {
+                $this->addFlash('error', 'A customer with this email already exists.');
+                return $this->redirectAfterWrite($request, 'admin_customers_new', 'staff_customers_new');
+            }
+
+            // Create user
+            $customer = new User();
+            $customer->setEmail($email);
+            $customer->setFirstName($firstName);
+            $customer->setLastName($lastName);
+            $customer->setPhone($phone);
+            $customer->setRoles([User::ROLE_CUSTOMER]);
+            $customer->setIsActive(true);
+            $customer->setIsEmailVerified(true);
+            $customer->setPassword($passwordHasher->hashPassword($customer, $password));
+
+            if ($ageVerified) {
+                $customer->setAgeVerificationStatus(User::AGE_STATUS_VERIFIED);
+                $customer->setAgeVerifiedAt(new \DateTime());
+            } else {
+                $customer->setAgeVerificationStatus(User::AGE_STATUS_PENDING);
+            }
+
+            $em->persist($customer);
+            $em->flush();
+
+            $this->addFlash('success', sprintf('Customer %s %s created successfully.', $firstName, $lastName));
+            return $this->redirectAfterWrite($request, 'admin_customers_show', 'staff_customers_show', ['id' => $customer->getId()]);
+        }
+
+        return $this->render('admin/customers/new.html.twig', [
             'customers_route_prefix' => str_starts_with((string) $request->attributes->get('_route', ''), 'staff_customers') ? 'staff_customers' : 'admin_customers',
         ]);
     }
