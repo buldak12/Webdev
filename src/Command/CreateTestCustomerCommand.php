@@ -37,17 +37,16 @@ class CreateTestCustomerCommand extends Command
             $user->setAgeVerificationStatus(User::AGE_STATUS_VERIFIED);
             $user->setIsEmailVerified(true);
             $user->setIsActive(true);
-            $user->setPassword($this->passwordHasher->hashPassword($user, $password));
             $user->setRoles([User::ROLE_CUSTOMER]);
             $this->entityManager->persist($user);
-            $this->entityManager->flush();
-
-            $output->writeln(sprintf('✅ Test customer created: %s', $email));
-            $output->writeln(sprintf('   Password: %s', $password));
-            return Command::SUCCESS;
         }
 
-        $output->writeln(sprintf('✅ Test customer already exists: %s', $email));
+        // Always update password to ensure it's correct
+        $user->setPassword($this->passwordHasher->hashPassword($user, $password));
+        $this->entityManager->flush();
+
+        $output->writeln(sprintf('✅ Test customer created/updated: %s', $email));
+        $output->writeln(sprintf('   Password: %s', $password));
         return Command::SUCCESS;
     }
 }
