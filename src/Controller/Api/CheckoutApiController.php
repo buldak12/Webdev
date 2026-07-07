@@ -9,6 +9,7 @@ use App\Entity\User;
 use App\Repository\AddressRepository;
 use App\Repository\OrderRepository;
 use App\Repository\ProductVariantRepository;
+use App\Service\ActivityLogService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -116,7 +117,8 @@ class CheckoutApiController extends AbstractController
         Request $request,
         EntityManagerInterface $em,
         AddressRepository $addressRepository,
-        ProductVariantRepository $variantRepository
+        ProductVariantRepository $variantRepository,
+        ActivityLogService $activityLogService
     ): JsonResponse {
         $user = $this->getUser();
 
@@ -157,6 +159,7 @@ class CheckoutApiController extends AbstractController
         $order->setStatus(Order::STATUS_AWAITING_PAYMENT);
 
         $subtotal = '0.00';
+        $itemSummary = [];
 
         // Add items
         foreach ($data['items'] as $itemData) {
@@ -190,6 +193,14 @@ class CheckoutApiController extends AbstractController
 
             $itemTotal = bcmul($variant->getPrice(), (string) $quantity, 2);
             $subtotal = bcadd($subtotal, $itemTotal, 2);
+
+            // Track items for activity log
+            $itemSummary[] = [
+                'product' => $variant->getProduct()?->getName(),
+                'variant' => $variant->getDisplayName(),
+                'quantity' => $quantity,
+                'price' => $variant->getPrice(),
+            ];
         }
 
         // Set pricing
@@ -206,6 +217,22 @@ class CheckoutApiController extends AbstractController
 
         $em->persist($order);
         $em->flush();
+
+        // Log order creation to activity log
+        $activityLogService->logActivityFromRequest(
+            $user,
+            'ORDER_CREATED (Mobile App)',
+            $request,
+            'api_orders_create',
+            [
+                'order_id' => $order->getId(),
+                'order_number' => $order->getOrderNumber(),
+                'total_amount' => $order->getTotal(),
+                'items_count' => count($itemSummary),
+                'items' => $itemSummary,
+                'status' => $order->getStatus(),
+            ]
+        );
 
         return $this->json([
             'message' => 'Order created',
