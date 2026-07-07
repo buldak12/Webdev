@@ -64,14 +64,16 @@ class CustomerGoogleAuthenticator extends OAuth2Authenticator implements Authent
                 $user = $this->userRepository->findOneBy(['email' => $email]);
 
                 if (!$user) {
-                    // Create new staff account for Google users.
+                    // Create new CUSTOMER account for Google sign-in.
                     $user = new User();
                     $user->setEmail($email);
-                    $user->setFirstName($googleUser->getFirstName() ?: 'Staff');
+                    $user->setFirstName($googleUser->getFirstName() ?: 'Customer');
                     $user->setLastName($googleUser->getLastName() ?: 'User');
 
-                    // Set a random password for fallback local auth.
+                    // Set a random password — Google users don't need a local password.
                     $user->setPassword(bin2hex(random_bytes(32)));
+                    // Only set ROLE_CUSTOMER on brand-new accounts.
+                    $user->setRoles([User::ROLE_CUSTOMER]);
                     $this->em->persist($user);
 
                     // Send welcome email for newly created accounts.
@@ -82,7 +84,7 @@ class CustomerGoogleAuthenticator extends OAuth2Authenticator implements Authent
                     }
                 }
 
-                $user->setRoles([User::ROLE_STAFF]);
+                // Never overwrite existing roles — an existing staff/admin stays that way.
                 $user->setIsActive(true);
                 $user->setIsEmailVerified(true);
                 $user->setEmailVerificationToken(null);
@@ -103,8 +105,8 @@ class CustomerGoogleAuthenticator extends OAuth2Authenticator implements Authent
         // Store success message
         $request->getSession()->getFlashBag()->add('success', 'Welcome! You are now signed in.');
         
-        // Redirect all Google users to the staff dashboard.
-        return new RedirectResponse($this->router->generate('staff_dashboard'));
+        // Redirect customers to their account dashboard.
+        return new RedirectResponse($this->router->generate('account_index'));
     }
 
     public function onAuthenticationFailure(Request $request, AuthenticationException $exception): ?Response

@@ -40,12 +40,15 @@ class CreateAdminCommand extends Command
             $user->setEmail($email);
             $user->setFirstName('Admin');
             $user->setLastName('User');
-            $user->setRoles([User::ROLE_ADMIN]);
             $user->setAgeVerificationStatus(User::AGE_STATUS_VERIFIED);
             $user->setIsEmailVerified(true);
             $this->entityManager->persist($user);
         }
 
+        // Always ensure admin role and active status.
+        $user->setRoles([User::ROLE_ADMIN]);
+        $user->setIsActive(true);
+        $user->setIsEmailVerified(true);
         $user->setPassword($this->passwordHasher->hashPassword($user, $password));
         $this->entityManager->flush();
 

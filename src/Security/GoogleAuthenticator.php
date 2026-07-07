@@ -60,16 +60,18 @@ class GoogleAuthenticator extends OAuth2Authenticator implements AuthenticationE
                 $user = $this->userRepository->findOneBy(['email' => $email]);
 
                 if (!$user) {
-                    // Auto-provision Google users as staff accounts.
+                    // Auto-provision new Google users as staff accounts.
                     $user = new User();
                     $user->setEmail($email);
                     $user->setFirstName($googleUser->getFirstName() ?: 'Staff');
                     $user->setLastName($googleUser->getLastName() ?: 'User');
                     $user->setPassword(bin2hex(random_bytes(32)));
+                    // Only set ROLE_STAFF on brand-new accounts — never overwrite existing roles.
+                    $user->setRoles([User::ROLE_STAFF]);
                     $this->em->persist($user);
                 }
 
-                $user->setRoles([User::ROLE_STAFF]);
+                // Never downgrade an existing user's roles (e.g. ROLE_ADMIN → ROLE_STAFF).
                 $user->setIsActive(true);
                 $user->setGoogleId($googleUser->getId());
 
@@ -78,7 +80,6 @@ class GoogleAuthenticator extends OAuth2Authenticator implements AuthenticationE
                     $user->setIsEmailVerified(true);
                     $user->setEmailVerificationToken(null);
                 }
-
                 $this->em->flush();
 
                 return $user;

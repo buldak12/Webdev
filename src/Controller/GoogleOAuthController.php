@@ -10,7 +10,7 @@ use Symfony\Component\Routing\Annotation\Route;
 
 class GoogleOAuthController extends AbstractController
 {
-    private function getGoogleRedirectUri(Request $request): string
+    private function getGoogleRedirectUri(Request $request, string $routeName = 'oauth_google_check'): string
     {
         $configuredBaseUri = (string) ($_SERVER['GOOGLE_OAUTH_REDIRECT_BASE_URI'] ?? $_ENV['GOOGLE_OAUTH_REDIRECT_BASE_URI'] ?? '');
         $baseUri = rtrim($configuredBaseUri, '/');
@@ -20,7 +20,7 @@ class GoogleOAuthController extends AbstractController
             $baseUri = $request->getSchemeAndHttpHost();
         }
 
-        return $baseUri . $this->generateUrl('oauth_google_check');
+        return $baseUri . $this->generateUrl($routeName);
     }
 
     /**
@@ -30,7 +30,7 @@ class GoogleOAuthController extends AbstractController
     public function connect(Request $request, ClientRegistry $clientRegistry): RedirectResponse
     {
         $request->getSession()->set('oauth_login_flow', 'staff');
-        $redirectUri = $this->getGoogleRedirectUri($request);
+        $redirectUri = $this->getGoogleRedirectUri($request, 'oauth_google_check');
 
         return $clientRegistry
             ->getClient('google')
@@ -58,7 +58,7 @@ class GoogleOAuthController extends AbstractController
     public function customerConnect(Request $request, ClientRegistry $clientRegistry): RedirectResponse
     {
         $request->getSession()->set('oauth_login_flow', 'customer');
-        $redirectUri = $this->getGoogleRedirectUri($request);
+        $redirectUri = $this->getGoogleRedirectUri($request, 'oauth_google_customer_check');
 
         return $clientRegistry
             ->getClient('google_customer')

@@ -134,6 +134,29 @@ class ProductController extends AbstractController
                 $product->setCategory($category);
             }
 
+            // Sync variants: remove all existing ones, then re-add from the form.
+            foreach ($product->getVariants()->toArray() as $existing) {
+                $product->removeVariant($existing);
+                $em->remove($existing);
+            }
+
+            $flavors  = $request->request->all('variant_flavor')  ?? [];
+            $nicotines = $request->request->all('variant_nicotine') ?? [];
+            $stocks   = $request->request->all('variant_stock')   ?? [];
+            $prices   = $request->request->all('variant_price')   ?? [];
+
+            foreach ($flavors as $i => $flavor) {
+                if (!empty($flavor)) {
+                    $variant = new ProductVariant();
+                    $variant->setFlavor($flavor);
+                    $variant->setNicotineStrength($nicotines[$i] ?? null);
+                    $variant->setStock((int)($stocks[$i] ?? 0));
+                    $variant->setPriceModifier($prices[$i] ?? '0.00');
+                    $variant->setSku($product->getSku() . '-' . strtoupper(substr(md5($flavor . ($nicotines[$i] ?? '')), 0, 6)));
+                    $product->addVariant($variant);
+                }
+            }
+
             $em->flush();
 
             $this->addFlash('success', 'Product updated successfully');
