@@ -12,6 +12,8 @@ use Symfony\Component\Routing\Annotation\Route;
 #[Route('/api')]
 class OrderApiController extends AbstractController
 {
+    // Admin/Staff only endpoints
+    
     #[Route('/customers', name: 'api_customers_list', methods: ['GET'])]
     public function getCustomers(UserRepository $userRepository): JsonResponse
     {
