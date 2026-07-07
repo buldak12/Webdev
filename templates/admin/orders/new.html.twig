@@ -1,0 +1,348 @@
+{% extends app.request.get('_route') starts with 'staff_' ? 'staff/base.html.twig' : 'admin/base.html.twig' %}
+
+{% block title %}Create New Order{% endblock %}
+{% block breadcrumb %}Sales / Orders / New{% endblock %}
+
+{% block body %}
+{% set route_prefix = orders_route_prefix|default('admin_orders') %}
+<div class="page-header d-flex justify-content-between align-items-center">
+    <h1>Create New Order</h1>
+    <a href="{{ path(route_prefix) }}" class="btn btn-outline-secondary btn-icon" title="Back to orders" aria-label="Back to orders">
+        <i class="bi bi-arrow-left" aria-hidden="true"></i>
+        <span class="visually-hidden">Back to Orders</span>
+    </a>
+</div>
+
+<form method="post" id="orderForm">
+    <div class="row">
+        <!-- Main Content -->
+        <div class="col-lg-8">
+            <!-- Customer Selection -->
+            <div class="card mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Customer</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Select Customer <span class="text-danger">*</span></label>
+                        <select class="form-select" name="user_id" id="userId" required onchange="updateCustomerAddresses()">
+                            <option value="">-- Choose customer --</option>
+                            <!-- Populated by AJAX -->
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Shipping Address -->
+            <div class="card mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Shipping Address</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Shipping Address <span class="text-danger">*</span></label>
+                        <select class="form-select" name="shipping_address_id" id="shippingAddressId" required>
+                            <option value="">-- Select customer first --</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Billing Address -->
+            <div class="card mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Billing Address</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Billing Address (optional)</label>
+                        <select class="form-select" name="billing_address_id">
+                            <option value="">-- Same as shipping --</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Order Items -->
+            <div class="card mb-4">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Order Items</h5>
+                    <button type="button" class="btn btn-sm btn-outline-primary btn-icon" onclick="addOrderItem()" title="Add item" aria-label="Add item">
+                        <i class="bi bi-plus-lg" aria-hidden="true"></i>
+                        <span class="visually-hidden">Add Item</span>
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered" id="itemsTable">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Product/Variant</th>
+                                    <th style="width: 100px;">Qty</th>
+                                    <th style="width: 120px;">Unit Price (₱)</th>
+                                    <th style="width: 120px;">Total (₱)</th>
+                                    <th style="width: 60px;"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="itemsBody">
+                                <tr>
+                                    <td colspan="5" class="text-center py-4 text-muted">No items added yet. Click "Add Item" to begin.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notes -->
+            <div class="card mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Notes</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Customer Notes</label>
+                        <textarea class="form-control" name="notes" rows="3" placeholder="Notes visible to customer..."></textarea>
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label">Internal Notes</label>
+                        <textarea class="form-control" name="internal_notes" rows="3" placeholder="Internal notes (staff only)..."></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <!-- Order Summary -->
+            <div class="card mb-4 sticky-top" style="top: 20px;">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Order Summary</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span>Subtotal:</span>
+                            <strong>₱<span id="summarySubtotal">0.00</span></strong>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Discount (₱)</label>
+                        <input type="number" step="0.01" class="form-control" name="discount" value="0.00" onchange="updateSummary()">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Tax (₱)</label>
+                        <input type="number" step="0.01" class="form-control" name="tax" value="0.00" onchange="updateSummary()">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Shipping Cost (₱)</label>
+                        <input type="number" step="0.01" class="form-control" name="shipping_cost" value="0.00" onchange="updateSummary()">
+                    </div>
+
+                    <hr>
+
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="fw-bold">Total:</span>
+                            <span class="fs-5 fw-bold">₱<span id="summaryTotal">0.00</span></span>
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-icon" title="Create order" aria-label="Create order">
+                            <i class="bi bi-check-lg" aria-hidden="true"></i>
+                            <span class="visually-hidden">Create Order</span>
+                        </button>
+                        <a href="{{ path(route_prefix) }}" class="btn btn-outline-secondary btn-icon" title="Cancel" aria-label="Cancel">
+                            <i class="bi bi-x-lg" aria-hidden="true"></i>
+                            <span class="visually-hidden">Cancel</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+<script>
+let itemCount = 0;
+let itemRows = {};
+
+// Load customers on page load
+document.addEventListener('DOMContentLoaded', function() {
+    loadCustomers();
+});
+
+// Load all customers
+async function loadCustomers() {
+    try {
+        const response = await fetch('{{ path("api_customers_list") }}', {
+            headers: {'Accept': 'application/json'}
+        });
+        const customers = await response.json();
+        
+        const select = document.getElementById('userId');
+        select.innerHTML = '<option value="">-- Choose customer --</option>';
+        customers.forEach(customer => {
+            const option = document.createElement('option');
+            option.value = customer.id;
+            option.textContent = `${customer.firstName} ${customer.lastName} (${customer.email})`;
+            select.appendChild(option);
+        });
+    } catch (error) {
+        console.error('Error loading customers:', error);
+    }
+}
+
+// Update addresses when customer is selected
+async function updateCustomerAddresses() {
+    const userId = document.getElementById('userId').value;
+    
+    if (!userId) {
+        document.getElementById('shippingAddressId').innerHTML = '<option value="">-- Select customer first --</option>';
+        return;
+    }
+
+    try {
+        const response = await fetch(`{{ path("api_customer_addresses", {id: "CUSTOMER_ID"}) }}`.replace('CUSTOMER_ID', userId), {
+            headers: {'Accept': 'application/json'}
+        });
+        const addresses = await response.json();
+        
+        ['shippingAddressId'].forEach(fieldId => {
+            const select = document.getElementById(fieldId);
+            select.innerHTML = '';
+            addresses.forEach((addr, idx) => {
+                const option = document.createElement('option');
+                option.value = addr.id;
+                option.textContent = `${addr.streetAddress}, ${addr.city}, ${addr.province} ${addr.postalCode}`;
+                if (idx === 0) option.selected = true;
+                select.appendChild(option);
+            });
+        });
+    } catch (error) {
+        console.error('Error loading addresses:', error);
+    }
+}
+
+// Add new order item row
+async function addOrderItem() {
+    itemCount++;
+    const tbody = document.getElementById('itemsBody');
+    
+    // Clear placeholder if needed
+    if (tbody.children.length === 1 && tbody.children[0].children.length === 1) {
+        tbody.innerHTML = '';
+    }
+
+    const row = document.createElement('tr');
+    row.id = `item-${itemCount}`;
+    
+    row.innerHTML = `
+        <td>
+            <select class="form-select form-select-sm" name="order_items[${itemCount}][variant_id]" onchange="updateItemPrice(${itemCount})">
+                <option value="">-- Select product --</option>
+            </select>
+        </td>
+        <td>
+            <input type="number" min="1" class="form-control form-control-sm" name="order_items[${itemCount}][quantity]" value="1" onchange="updateSummary()">
+        </td>
+        <td>
+            <input type="number" step="0.01" class="form-control form-control-sm" name="order_items[${itemCount}][unit_price]" value="0.00" onchange="updateSummary()">
+        </td>
+        <td class="text-end">
+            ₱<span class="item-total-${itemCount}">0.00</span>
+        </td>
+        <td>
+            <button type="button" class="btn btn-sm btn-outline-danger btn-icon" onclick="removeOrderItem(${itemCount})" title="Remove item" aria-label="Remove item">
+                <i class="bi bi-trash" aria-hidden="true"></i>
+                <span class="visually-hidden">Remove</span>
+            </button>
+        </td>
+    `;
+    
+    tbody.appendChild(row);
+    itemRows[itemCount] = true;
+    
+    // Load variants into select
+    loadVariants(itemCount);
+}
+
+// Remove order item
+function removeOrderItem(itemId) {
+    document.getElementById(`item-${itemId}`).remove();
+    delete itemRows[itemId];
+    updateSummary();
+}
+
+// Load product variants
+async function loadVariants(itemId) {
+    try {
+        const response = await fetch('{{ path("api_variants_list") }}', {
+            headers: {'Accept': 'application/json'}
+        });
+        const variants = await response.json();
+        
+        const select = document.querySelector(`[name="order_items[${itemId}][variant_id]"]`);
+        select.innerHTML = '<option value="">-- Select product --</option>';
+        
+        variants.forEach(variant => {
+            const option = document.createElement('option');
+            option.value = variant.id;
+            option.textContent = `${variant.productName} - ${variant.attributes}`;
+            option.dataset.price = variant.price;
+            select.appendChild(option);
+        });
+    } catch (error) {
+        console.error('Error loading variants:', error);
+    }
+}
+
+// Update item price from variant
+function updateItemPrice(itemId) {
+    const select = document.querySelector(`[name="order_items[${itemId}][variant_id]"]`);
+    const priceInput = document.querySelector(`[name="order_items[${itemId}][unit_price]"]`);
+    const option = select.options[select.selectedIndex];
+    
+    if (option.dataset.price) {
+        priceInput.value = option.dataset.price;
+    }
+    
+    updateSummary();
+}
+
+// Update summary totals
+function updateSummary() {
+    let subtotal = 0;
+    
+    // Calculate subtotal from items
+    Object.keys(itemRows).forEach(itemId => {
+        const qty = parseFloat(document.querySelector(`[name="order_items[${itemId}][quantity]"]`)?.value ?? 0);
+        const price = parseFloat(document.querySelector(`[name="order_items[${itemId}][unit_price]"]`)?.value ?? 0);
+        const itemTotal = qty * price;
+        
+        document.querySelector(`.item-total-${itemId}`)?.textContent = itemTotal.toFixed(2);
+        subtotal += itemTotal;
+    });
+
+    document.getElementById('summarySubtotal').textContent = subtotal.toFixed(2);
+
+    // Calculate total
+    const discount = parseFloat(document.querySelector('[name="discount"]').value) || 0;
+    const tax = parseFloat(document.querySelector('[name="tax"]').value) || 0;
+    const shipping = parseFloat(document.querySelector('[name="shipping_cost"]').value) || 0;
+    
+    const total = subtotal - discount + tax + shipping;
+    document.getElementById('summaryTotal').textContent = total.toFixed(2);
+}
+</script>
+
+<style>
+.sticky-top {
+    position: sticky !important;
+}
+</style>
+{% endblock %}

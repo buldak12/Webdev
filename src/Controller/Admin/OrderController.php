@@ -2,9 +2,14 @@
 
 namespace App\Controller\Admin;
 
+use App\Entity\Address;
 use App\Entity\Order;
+use App\Entity\OrderItem;
+use App\Entity\User;
 use App\Repository\OrderRepository;
 use App\Repository\PaymentRepository;
+use App\Repository\ProductVariantRepository;
+use App\Repository\UserRepository;
 use App\Service\OrderService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -42,6 +47,94 @@ class OrderController extends AbstractController
             'orders' => $orders,
             'current_status' => $status,
             'statuses' => Order::STATUSES,
+            'orders_route_prefix' => str_starts_with((string) $request->attributes->get('_route', ''), 'staff_sales_orders') ? 'staff_sales_orders' : 'admin_orders',
+        ]);
+    }
+
+    #[Route('/admin/orders/new', name: 'admin_orders_new')]
+    #[Route('/staff/sales/orders/new', name: 'staff_sales_orders_new')]
+    public function new(
+        Request $request,
+        EntityManagerInterface $em,
+        ProductVariantRepository $variantRepository
+    ): Response {
+        if ($request->isMethod('POST')) {
+            $customerId = $request->request->get('user_id');
+            $shippingAddressId = $request->request->get('shipping_address_id');
+            $billingAddressId = $request->request->get('billing_address_id');
+            $subtotal = (float) ($request->request->get('subtotal') ?? 0);
+            $discount = (float) ($request->request->get('discount') ?? 0);
+            $tax = (float) ($request->request->get('tax') ?? 0);
+            $shippingCost = (float) ($request->request->get('shipping_cost') ?? 0);
+            $notes = $request->request->get('notes');
+            $internalNotes = $request->request->get('internal_notes');
+            $items = $request->request->all('order_items') ?? [];
+
+            // Validate inputs
+            if (!$customerId || !$shippingAddressId || empty($items)) {
+                $this->addFlash('error', 'Customer, shipping address, and at least one item are required.');
+                return $this->redirectAfterWrite($request, 'admin_orders_new', 'staff_sales_orders_new');
+            }
+
+            $user = $em->getRepository(User::class)->find($customerId);
+            $shippingAddress = $em->getRepository(Address::class)->find($shippingAddressId);
+            $billingAddress = $billingAddressId ? $em->getRepository(Address::class)->find($billingAddressId) : $shippingAddress;
+
+            if (!$user || !$shippingAddress) {
+                $this->addFlash('error', 'Invalid customer or address selection.');
+                return $this->redirectAfterWrite($request, 'admin_orders_new', 'staff_sales_orders_new');
+            }
+
+            // Create order
+            $order = new Order();
+            $order->setUser($user);
+            $order->setShippingAddress($shippingAddress);
+            $order->setBillingAddress($billingAddress);
+            $order->setSubtotal((string) $subtotal);
+            $order->setDiscount((string) $discount);
+            $order->setTax((string) $tax);
+            $order->setShippingCost((string) $shippingCost);
+            $order->setNotes($notes);
+            $order->setInternalNotes($internalNotes);
+            $order->setStatus(Order::STATUS_PENDING);
+
+            // Add items
+            foreach ($items as $itemData) {
+                if (empty($itemData['variant_id']) || empty($itemData['quantity'])) {
+                    continue;
+                }
+
+                $variant = $variantRepository->find($itemData['variant_id']);
+                if (!$variant) {
+                    continue;
+                }
+
+                $quantity = (int) $itemData['quantity'];
+                $unitPrice = isset($itemData['unit_price']) && $itemData['unit_price'] 
+                    ? (string) $itemData['unit_price']
+                    : $variant->getPrice();
+
+                $item = new OrderItem();
+                $item->setVariant($variant);
+                $item->setQuantity($quantity);
+                $item->setUnitPrice($unitPrice);
+                $item->setProductName($variant->getProduct()->getName());
+
+                $order->addItem($item);
+                $em->persist($item);
+            }
+
+            // Calculate total
+            $order->calculateTotal();
+
+            $em->persist($order);
+            $em->flush();
+
+            $this->addFlash('success', sprintf('Order #%s created successfully.', $order->getOrderNumber()));
+            return $this->redirectAfterWrite($request, 'admin_orders_show', 'staff_sales_orders_show', ['id' => $order->getId()]);
+        }
+
+        return $this->render('admin/orders/new.html.twig', [
             'orders_route_prefix' => str_starts_with((string) $request->attributes->get('_route', ''), 'staff_sales_orders') ? 'staff_sales_orders' : 'admin_orders',
         ]);
     }
