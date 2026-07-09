@@ -95,8 +95,9 @@ class PublicOrderController extends AbstractController
                 );
             }
 
-            // Get fulfillment type first
+            // Get fulfillment and payment info
             $fulfillmentType = $data['fulfillmentType'] ?? 'pickup';
+            $paymentMethod = $data['paymentMethod'] ?? 'cash';
 
             // For delivery orders, create address. For pickup, create a dummy store address.
             $address = new Address();
@@ -154,8 +155,7 @@ class PublicOrderController extends AbstractController
             $order->setShippingCost($shipping);
             $order->calculateTotal();
             
-            // Set notes with payment method
-            $paymentMethod = $data['paymentMethod'] ?? 'cash';
+            // Set notes
             $notes = "Payment: {$paymentMethod} | Fulfillment: {$fulfillmentType}";
             if (isset($data['notes'])) {
                 $notes .= " | " . $data['notes'];
