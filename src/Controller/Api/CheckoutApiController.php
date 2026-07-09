@@ -9,12 +9,14 @@ use App\Entity\User;
 use App\Repository\AddressRepository;
 use App\Repository\OrderRepository;
 use App\Repository\ProductVariantRepository;
+use App\Repository\UserRepository;
 use App\Service\ActivityLogService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Annotation\Route;
 
 #[Route('/api')]
@@ -118,31 +120,89 @@ class CheckoutApiController extends AbstractController
         EntityManagerInterface $em,
         AddressRepository $addressRepository,
         ProductVariantRepository $variantRepository,
+        UserRepository $userRepository,
+        UserPasswordHasherInterface $passwordHasher,
         ActivityLogService $activityLogService
     ): JsonResponse {
+        $data = json_decode($request->getContent(), true);
+        
+        // Try to get authenticated user first
         $user = $this->getUser();
+        
+        // If no session user, try to find/create user by email (mobile app support)
+        if (!$user && isset($data['customer_email']) && !empty($data['customer_email'])) {
+            $user = $userRepository->findOneBy(['email' => $data['customer_email']]);
+            
+            // Create guest user if doesn't exist
+            if (!$user) {
+                $user = new User();
+                $user->setEmail($data['customer_email']);
+                $user->setFirstName($data['customer_name'] ?? 'Guest');
+                $user->setLastName('User');
+                $user->setRoles(['ROLE_CUSTOMER']);
+                $hashedPassword = $passwordHasher->hashPassword($user, bin2hex(random_bytes(16)));
+                $user->setPassword($hashedPassword);
+                $user->setIsEmailVerified(false);
+                $em->persist($user);
+                $em->flush();
+            }
+        }
 
         if (!$user) {
             return $this->json(
-                ['error' => 'Unauthorized'],
+                ['error' => 'Unauthorized - please provide customer_email'],
                 Response::HTTP_UNAUTHORIZED
             );
         }
 
-        $data = json_decode($request->getContent(), true);
-
-        // Validate
-        if (!isset($data['shipping_address_id'], $data['items']) || empty($data['items'])) {
+        // Check if we have inline address data (mobile app) or address ID (web)
+        $shippingAddress = null;
+        
+        if (isset($data['shipping_address_id'])) {
+            // Web app format - use existing address
+            $shippingAddress = $addressRepository->find($data['shipping_address_id']);
+            if (!$shippingAddress || $shippingAddress->getUser() !== $user) {
+                return $this->json(
+                    ['error' => 'Invalid shipping address'],
+                    Response::HTTP_BAD_REQUEST
+                );
+            }
+        } elseif (isset($data['customer_name'])) {
+            // Mobile app format - create address inline
+            $address = new Address();
+            $address->setUser($user);
+            $address->setFullName($data['customer_name']);
+            
+            $fulfillmentType = $data['fulfillment_type'] ?? 'pickup';
+            if ($fulfillmentType === 'delivery' && isset($data['delivery_address']) && !empty($data['delivery_address'])) {
+                $address->setStreetAddress($data['delivery_address']);
+                $address->setCity('Manila');
+                $address->setProvince('Metro Manila');
+            } else {
+                $address->setStreetAddress('Store Pickup');
+                $address->setCity('Store Location');
+                $address->setProvince('Store Province');
+            }
+            
+            $address->setPostalCode('1000');
+            $address->setCountry('Philippines');
+            $address->setPhone($data['customer_phone'] ?? '');
+            
+            $em->persist($address);
+            $em->flush(); // Get address ID
+            
+            $shippingAddress = $address;
+        } else {
             return $this->json(
-                ['error' => 'Missing shipping_address_id or items'],
+                ['error' => 'Missing shipping_address_id or customer_name'],
                 Response::HTTP_BAD_REQUEST
             );
         }
 
-        $shippingAddress = $addressRepository->find($data['shipping_address_id']);
-        if (!$shippingAddress || $shippingAddress->getUser() !== $user) {
+        // Validate items
+        if (!isset($data['items']) || empty($data['items'])) {
             return $this->json(
-                ['error' => 'Invalid shipping address'],
+                ['error' => 'Missing items'],
                 Response::HTTP_BAD_REQUEST
             );
         }
@@ -156,7 +216,14 @@ class CheckoutApiController extends AbstractController
         $order->setUser($user);
         $order->setShippingAddress($shippingAddress);
         $order->setBillingAddress($billingAddress);
-        $order->setStatus(Order::STATUS_AWAITING_PAYMENT);
+        
+        // Set status based on payment method and fulfillment type
+        $paymentMethod = $data['payment_method'] ?? 'cash';
+        $fulfillmentType = $data['fulfillment_type'] ?? 'pickup';
+        $status = ($fulfillmentType === 'pickup' && $paymentMethod === 'cash') 
+            ? Order::STATUS_PENDING 
+            : Order::STATUS_AWAITING_PAYMENT;
+        $order->setStatus($status);
 
         $subtotal = '0.00';
         $itemSummary = [];
@@ -213,7 +280,13 @@ class CheckoutApiController extends AbstractController
         $order->setTax($tax);
         $order->setShippingCost($shipping);
         $order->calculateTotal();
-        $order->setNotes($data['notes'] ?? null);
+        
+        // Set notes
+        $notes = "Payment: {$paymentMethod} | Fulfillment: {$fulfillmentType}";
+        if (isset($data['notes'])) {
+            $notes .= " | " . $data['notes'];
+        }
+        $order->setNotes($notes);
 
         $em->persist($order);
         $em->flush();
