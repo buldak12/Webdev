@@ -37,14 +37,9 @@ class PublicOrderController extends AbstractController
     ): JsonResponse {
         $data = json_decode($request->getContent(), true);
 
-        // Extract user from Authorization header if provided
+        // For now, we'll create orders without user association
+        // In production, implement proper JWT/API token validation
         $user = null;
-        $authHeader = $request->headers->get('Authorization');
-        if ($authHeader && str_starts_with($authHeader, 'Bearer ')) {
-            $token = substr($authHeader, 7);
-            // Find user by API token (simplified - in production use proper token validation)
-            $user = $userRepository->findOneBy(['apiToken' => $token]);
-        }
 
         // Validate required fields
         $required = ['orderNumber', 'productId', 'customerName', 'quantity', 'totalAmount'];
@@ -76,24 +71,33 @@ class PublicOrderController extends AbstractController
                 );
             }
 
-            // Create shipping address from delivery info
-            $address = null;
-            if (isset($data['deliveryAddress']) && !empty($data['deliveryAddress'])) {
-                $address = new Address();
-                $address->setFullName($data['customerName']);
+            // Get fulfillment type first
+            $fulfillmentType = $data['fulfillmentType'] ?? 'pickup';
+
+            // For delivery orders, create address. For pickup, create a dummy store address.
+            $address = new Address();
+            $address->setFullName($data['customerName']);
+            
+            if ($fulfillmentType === 'delivery' && isset($data['deliveryAddress']) && !empty($data['deliveryAddress'])) {
                 $address->setStreetAddress($data['deliveryAddress']);
-                $address->setCity('Manila'); // Default
-                $address->setProvince('Metro Manila'); // Default
-                $address->setPostalCode('1000'); // Default
-                $address->setCountry('Philippines');
-                $address->setPhone($data['customerPhone'] ?? '');
-                
-                if ($user) {
-                    $address->setUser($user);
-                }
-                
-                $em->persist($address);
+                $address->setCity('Manila'); // Parse from address if needed
+                $address->setProvince('Metro Manila');
+            } else {
+                // Pickup - use store address
+                $address->setStreetAddress('Store Pickup');
+                $address->setCity('Store Location');
+                $address->setProvince('Store Province');
             }
+            
+            $address->setPostalCode('1000');
+            $address->setCountry('Philippines');
+            $address->setPhone($data['customerPhone'] ?? '');
+            
+            if ($user) {
+                $address->setUser($user);
+            }
+            
+            $em->persist($address);
 
             // Create order
             $order = new Order();
@@ -101,16 +105,10 @@ class PublicOrderController extends AbstractController
                 $order->setUser($user);
             }
             
-            $order->setCustomerName($data['customerName']);
-            $order->setCustomerEmail($data['customerEmail'] ?? null);
+            $order->setShippingAddress($address);
+            $order->setBillingAddress($address);
             
-            if ($address) {
-                $order->setShippingAddress($address);
-                $order->setBillingAddress($address);
-            }
-            
-            // Set fulfillment type
-            $fulfillmentType = $data['fulfillmentType'] ?? 'pickup';
+            // Set fulfillment status
             $order->setStatus($fulfillmentType === 'pickup' ? Order::STATUS_AWAITING_PICKUP : Order::STATUS_AWAITING_PAYMENT);
 
             // Create order item
