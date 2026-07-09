@@ -5,6 +5,7 @@ namespace App\Controller\Api;
 use App\Entity\Order;
 use App\Entity\OrderItem;
 use App\Entity\Address;
+use App\Entity\User;
 use App\Repository\ProductRepository;
 use App\Repository\ProductVariantRepository;
 use App\Repository\UserRepository;
@@ -37,9 +38,31 @@ class PublicOrderController extends AbstractController
     ): JsonResponse {
         $data = json_decode($request->getContent(), true);
 
-        // For now, we'll create orders without user association
-        // In production, implement proper JWT/API token validation
+        // Find or create guest user based on email
         $user = null;
+        if (isset($data['customerEmail']) && !empty($data['customerEmail'])) {
+            $user = $userRepository->findOneBy(['email' => $data['customerEmail']]);
+        }
+        
+        // If no user found, create a guest user
+        if (!$user) {
+            $guestEmail = $data['customerEmail'] ?? 'guest_' . uniqid() . '@mobile.app';
+            $existingGuest = $userRepository->findOneBy(['email' => $guestEmail]);
+            
+            if (!$existingGuest) {
+                $user = new User();
+                $user->setEmail($guestEmail);
+                $user->setFirstName($data['customerName'] ?? 'Guest');
+                $user->setLastName('User');
+                $user->setRoles(['ROLE_CUSTOMER']);
+                $user->setPassword(bin2hex(random_bytes(32))); // Random password
+                $user->setIsVerified(false);
+                $em->persist($user);
+                $em->flush(); // Flush to get user ID
+            } else {
+                $user = $existingGuest;
+            }
+        }
 
         // Validate required fields
         $required = ['orderNumber', 'productId', 'customerName', 'quantity', 'totalAmount'];
@@ -92,24 +115,23 @@ class PublicOrderController extends AbstractController
             $address->setPostalCode('1000');
             $address->setCountry('Philippines');
             $address->setPhone($data['customerPhone'] ?? '');
-            
-            if ($user) {
-                $address->setUser($user);
-            }
+            $address->setUser($user); // User is always set now
             
             $em->persist($address);
 
             // Create order
             $order = new Order();
-            if ($user) {
-                $order->setUser($user);
-            }
-            
+            $order->setUser($user); // User is always set now (guest or registered)
             $order->setShippingAddress($address);
             $order->setBillingAddress($address);
             
             // Set fulfillment status
-            $order->setStatus($fulfillmentType === 'pickup' ? Order::STATUS_AWAITING_PICKUP : Order::STATUS_AWAITING_PAYMENT);
+            // For cash pickup orders, set to PENDING (ready to process)
+            // For delivery or online payment, set to AWAITING_PAYMENT
+            $status = ($fulfillmentType === 'pickup' && $paymentMethod === 'cash') 
+                ? Order::STATUS_PENDING 
+                : Order::STATUS_AWAITING_PAYMENT;
+            $order->setStatus($status);
 
             // Create order item
             $orderItem = new OrderItem();
@@ -143,24 +165,22 @@ class PublicOrderController extends AbstractController
             $em->flush();
 
             // Log activity
-            if ($user) {
-                $activityLogService->logActivityFromRequest(
-                    $user,
-                    'ORDER_CREATED (Mobile - Legacy API)',
-                    $request,
-                    'public_orders_create',
-                    [
-                        'order_id' => $order->getId(),
-                        'order_number' => $order->getOrderNumber(),
-                        'product_id' => $product->getId(),
-                        'product_name' => $product->getName(),
-                        'quantity' => $data['quantity'],
-                        'total_amount' => $data['totalAmount'],
-                        'fulfillment_type' => $fulfillmentType,
-                        'payment_method' => $paymentMethod,
-                    ]
-                );
-            }
+            $activityLogService->logActivityFromRequest(
+                $user,
+                'ORDER_CREATED (Mobile - Legacy API)',
+                $request,
+                'public_orders_create',
+                [
+                    'order_id' => $order->getId(),
+                    'order_number' => $order->getOrderNumber(),
+                    'product_id' => $product->getId(),
+                    'product_name' => $product->getName(),
+                    'quantity' => $data['quantity'],
+                    'total_amount' => $data['totalAmount'],
+                    'fulfillment_type' => $fulfillmentType,
+                    'payment_method' => $paymentMethod,
+                ]
+            );
 
             return $this->json([
                 'success' => true,
