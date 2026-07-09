@@ -40,32 +40,29 @@ class PublicOrderController extends AbstractController
     ): JsonResponse {
         $data = json_decode($request->getContent(), true);
 
-        // Find or create guest user based on email
+        // Find user by email if provided (from logged-in user)
         $user = null;
         if (isset($data['customerEmail']) && !empty($data['customerEmail'])) {
             $user = $userRepository->findOneBy(['email' => $data['customerEmail']]);
         }
         
-        // If no user found, create a guest user
+        // If no existing user, create a new guest user
         if (!$user) {
-            $guestEmail = $data['customerEmail'] ?? 'guest_' . uniqid() . '@mobile.app';
-            $existingGuest = $userRepository->findOneBy(['email' => $guestEmail]);
+            $guestEmail = isset($data['customerEmail']) && !empty($data['customerEmail']) 
+                ? $data['customerEmail'] 
+                : 'guest_' . uniqid() . '@mobile.app';
             
-            if (!$existingGuest) {
-                $user = new User();
-                $user->setEmail($guestEmail);
-                $user->setFirstName($data['customerName'] ?? 'Guest');
-                $user->setLastName('User');
-                $user->setRoles(['ROLE_CUSTOMER']);
-                // Hash a random password
-                $hashedPassword = $passwordHasher->hashPassword($user, bin2hex(random_bytes(16)));
-                $user->setPassword($hashedPassword);
-                $user->setIsEmailVerified(false);
-                $em->persist($user);
-                $em->flush(); // Flush to get user ID
-            } else {
-                $user = $existingGuest;
-            }
+            $user = new User();
+            $user->setEmail($guestEmail);
+            $user->setFirstName($data['customerName'] ?? 'Guest');
+            $user->setLastName('User');
+            $user->setRoles(['ROLE_CUSTOMER']);
+            // Hash a random password
+            $hashedPassword = $passwordHasher->hashPassword($user, bin2hex(random_bytes(16)));
+            $user->setPassword($hashedPassword);
+            $user->setIsEmailVerified(false);
+            $em->persist($user);
+            $em->flush(); // Flush to get user ID
         }
 
         // Validate required fields
