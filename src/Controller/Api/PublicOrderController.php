@@ -15,6 +15,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Annotation\Route;
 
 /**
@@ -34,6 +35,7 @@ class PublicOrderController extends AbstractController
         ProductRepository $productRepository,
         ProductVariantRepository $variantRepository,
         UserRepository $userRepository,
+        UserPasswordHasherInterface $passwordHasher,
         ActivityLogService $activityLogService
     ): JsonResponse {
         $data = json_decode($request->getContent(), true);
@@ -55,8 +57,10 @@ class PublicOrderController extends AbstractController
                 $user->setFirstName($data['customerName'] ?? 'Guest');
                 $user->setLastName('User');
                 $user->setRoles(['ROLE_CUSTOMER']);
-                $user->setPassword(bin2hex(random_bytes(32))); // Random password
-                $user->setIsVerified(false);
+                // Hash a random password
+                $hashedPassword = $passwordHasher->hashPassword($user, bin2hex(random_bytes(16)));
+                $user->setPassword($hashedPassword);
+                $user->setIsEmailVerified(false);
                 $em->persist($user);
                 $em->flush(); // Flush to get user ID
             } else {
