@@ -120,88 +120,109 @@ class SimpleOrderController extends AbstractController
                     continue;
                 }
 
-                $variant = $variantRepository->find($itemData['variant_id']);
-                if (!$variant) {
-                    continue;
+                try {
+                    $variant = $variantRepository->find($itemData['variant_id']);
+                    if (!$variant) {
+                        return $this->json([
+                            'error' => 'Variant not found',
+                            'variant_id' => $itemData['variant_id']
+                        ], Response::HTTP_BAD_REQUEST);
+                    }
+
+                    $quantity = (int) $itemData['quantity'];
+                    $unitPrice = (float) $variant->getFinalPrice();
+                    $subtotal = $unitPrice * $quantity;
+                    $total += $subtotal;
+
+                    $itemsForStorage[] = [
+                        'variant_id' => $variant->getId(),
+                        'product_name' => $variant->getProduct()->getName(),
+                        'variant_name' => $variant->getName(),
+                        'quantity' => $quantity,
+                        'unit_price' => number_format($unitPrice, 2, '.', ''),
+                        'subtotal' => number_format($subtotal, 2, '.', ''),
+                    ];
+                } catch (\Exception $variantError) {
+                    return $this->json([
+                        'error' => 'Error loading variant',
+                        'variant_id' => $itemData['variant_id'],
+                        'message' => $variantError->getMessage()
+                    ], Response::HTTP_INTERNAL_SERVER_ERROR);
                 }
-
-                $quantity = (int) $itemData['quantity'];
-                $unitPrice = (float) $variant->getFinalPrice();
-                $subtotal = $unitPrice * $quantity;
-                $total += $subtotal;
-
-                $itemsForStorage[] = [
-                    'variant_id' => $variant->getId(),
-                    'product_name' => $variant->getProduct()->getName(),
-                    'variant_name' => $variant->getName(),
-                    'quantity' => $quantity,
-                    'unit_price' => number_format($unitPrice, 2, '.', ''),
-                    'subtotal' => number_format($subtotal, 2, '.', ''),
-                ];
             }
 
             // Insert using raw SQL to avoid entity/migration issues
-            $conn = $em->getConnection();
-            
-            // Check if table exists
-            $tableExists = $conn->fetchOne(
-                "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'mobile_orders'"
-            );
-            
-            if (!$tableExists) {
-                // Create table if it doesn't exist
-                $conn->executeStatement("
-                    CREATE TABLE IF NOT EXISTS mobile_orders (
-                        id INT AUTO_INCREMENT NOT NULL,
-                        customer_email VARCHAR(255) NOT NULL,
-                        customer_name VARCHAR(255) DEFAULT NULL,
-                        customer_phone VARCHAR(50) DEFAULT NULL,
-                        items_json LONGTEXT NOT NULL,
-                        status VARCHAR(20) NOT NULL,
-                        fulfillment_type VARCHAR(20) DEFAULT NULL,
-                        payment_method VARCHAR(50) DEFAULT NULL,
-                        delivery_address VARCHAR(255) DEFAULT NULL,
-                        total NUMERIC(10, 2) NOT NULL,
-                        created_at DATETIME NOT NULL,
-                        INDEX idx_customer_email (customer_email),
-                        INDEX idx_created_at (created_at),
-                        PRIMARY KEY(id)
-                    ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci ENGINE = InnoDB
-                ");
-            }
-            
-            // Insert order
-            $conn->insert('mobile_orders', [
-                'customer_email' => $data['customer_email'],
-                'customer_name' => $data['customer_name'] ?? null,
-                'customer_phone' => $data['customer_phone'] ?? null,
-                'items_json' => json_encode($itemsForStorage),
-                'status' => 'pending',
-                'fulfillment_type' => $data['fulfillment_type'] ?? 'pickup',
-                'payment_method' => $data['payment_method'] ?? 'cash',
-                'delivery_address' => $data['delivery_address'] ?? null,
-                'total' => number_format($total, 2, '.', ''),
-                'created_at' => (new \DateTime())->format('Y-m-d H:i:s'),
-            ]);
-            
-            $orderId = $conn->lastInsertId();
-
-            return $this->json([
-                'message' => 'Order created successfully',
-                'order' => [
-                    'id' => (int) $orderId,
-                    'order_number' => 'MOB-' . str_pad($orderId, 6, '0', STR_PAD_LEFT),
+            try {
+                $conn = $em->getConnection();
+                
+                // Check if table exists
+                $tableExists = $conn->fetchOne(
+                    "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'mobile_orders'"
+                );
+                
+                if (!$tableExists) {
+                    // Create table if it doesn't exist
+                    $conn->executeStatement("
+                        CREATE TABLE IF NOT EXISTS mobile_orders (
+                            id INT AUTO_INCREMENT NOT NULL,
+                            customer_email VARCHAR(255) NOT NULL,
+                            customer_name VARCHAR(255) DEFAULT NULL,
+                            customer_phone VARCHAR(50) DEFAULT NULL,
+                            items_json LONGTEXT NOT NULL,
+                            status VARCHAR(20) NOT NULL,
+                            fulfillment_type VARCHAR(20) DEFAULT NULL,
+                            payment_method VARCHAR(50) DEFAULT NULL,
+                            delivery_address VARCHAR(255) DEFAULT NULL,
+                            total NUMERIC(10, 2) NOT NULL,
+                            created_at DATETIME NOT NULL,
+                            INDEX idx_customer_email (customer_email),
+                            INDEX idx_created_at (created_at),
+                            PRIMARY KEY(id)
+                        ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci ENGINE = InnoDB
+                    ");
+                }
+                
+                // Insert order
+                $conn->insert('mobile_orders', [
+                    'customer_email' => $data['customer_email'],
+                    'customer_name' => $data['customer_name'] ?? null,
+                    'customer_phone' => $data['customer_phone'] ?? null,
+                    'items_json' => json_encode($itemsForStorage),
                     'status' => 'pending',
+                    'fulfillment_type' => $data['fulfillment_type'] ?? 'pickup',
+                    'payment_method' => $data['payment_method'] ?? 'cash',
+                    'delivery_address' => $data['delivery_address'] ?? null,
                     'total' => number_format($total, 2, '.', ''),
-                    'items_count' => count($itemsForStorage),
-                    'created_at' => date('Y-m-d H:i:s')
-                ]
-            ], Response::HTTP_CREATED);
+                    'created_at' => (new \DateTime())->format('Y-m-d H:i:s'),
+                ]);
+                
+                $orderId = $conn->lastInsertId();
+
+                return $this->json([
+                    'message' => 'Order created successfully',
+                    'order' => [
+                        'id' => (int) $orderId,
+                        'order_number' => 'MOB-' . str_pad($orderId, 6, '0', STR_PAD_LEFT),
+                        'status' => 'pending',
+                        'total' => number_format($total, 2, '.', ''),
+                        'items_count' => count($itemsForStorage),
+                        'created_at' => date('Y-m-d H:i:s')
+                    ]
+                ], Response::HTTP_CREATED);
+            } catch (\Exception $dbError) {
+                return $this->json([
+                    'error' => 'Database error',
+                    'message' => $dbError->getMessage(),
+                    'code' => $dbError->getCode()
+                ], Response::HTTP_INTERNAL_SERVER_ERROR);
+            }
 
         } catch (\Exception $e) {
             return $this->json([
-                'error' => 'Order creation failed: ' . $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'error' => 'Order creation failed',
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
             ], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
