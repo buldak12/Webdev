@@ -42,6 +42,7 @@ security:
     # Note: Only the *first* matching rule is applied
     access_control:
         # Public API endpoints for mobile app
+        - { path: ^/api/mobile, roles: PUBLIC_ACCESS }
         - { path: ^/api/auth, roles: PUBLIC_ACCESS }
         - { path: ^/api/products, roles: PUBLIC_ACCESS }
         - { path: ^/api/orders, roles: PUBLIC_ACCESS }
