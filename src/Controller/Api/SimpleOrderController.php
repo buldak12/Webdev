@@ -33,10 +33,16 @@ class SimpleOrderController extends AbstractController
     ): JsonResponse {
         $data = json_decode($request->getContent(), true);
         
-        // Just return success for now to test
+        // Return structure that matches mobile app expectations
         return $this->json([
-            'message' => 'Test endpoint reached successfully',
-            'received' => $data
-        ], Response::HTTP_OK);
+            'message' => 'Order created successfully',
+            'order' => [
+                'id' => 999,
+                'order_number' => 'TEST-' . time(),
+                'status' => 'awaiting_payment',
+                'total' => '1000.00',
+                'created_at' => date('Y-m-d H:i:s')
+            ]
+        ], Response::HTTP_CREATED);
     }
 }
