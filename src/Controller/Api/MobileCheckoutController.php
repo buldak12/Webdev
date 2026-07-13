@@ -56,15 +56,15 @@ class MobileCheckoutController extends AbstractController
             $order = new Order();
             $order->setUser($user);
             $order->setStatus(Order::STATUS_AWAITING_PAYMENT);
-            $order->setFulfillmentType($data['fulfillment_type'] ?? 'pickup');
-            $order->setPaymentMethod($data['payment_method'] ?? 'cash');
             
-            // Store customer contact info in notes
+            // Store customer contact info and order details in notes
             $order->setNotes(sprintf(
-                "Mobile Order\nName: %s\nPhone: %s\nEmail: %s",
+                "Mobile Order\nName: %s\nPhone: %s\nEmail: %s\nFulfillment: %s\nPayment: %s",
                 $data['customer_name'],
                 $data['customer_phone'],
-                $data['customer_email']
+                $data['customer_email'],
+                $data['fulfillment_type'] ?? 'pickup',
+                $data['payment_method'] ?? 'cash'
             ));
 
             $subtotal = 0.0;
@@ -142,8 +142,8 @@ class MobileCheckoutController extends AbstractController
                     'shipping_fee' => $order->getShippingFee(),
                     'total' => $order->getTotal(),
                     'items_count' => $itemCount,
-                    'fulfillment_type' => $order->getFulfillmentType(),
-                    'payment_method' => $order->getPaymentMethod(),
+                    'fulfillment_type' => $data['fulfillment_type'] ?? 'pickup',
+                    'payment_method' => $data['payment_method'] ?? 'cash',
                     'created_at' => $order->getCreatedAt()->format('Y-m-d H:i:s'),
                 ]
             ], Response::HTTP_CREATED);
