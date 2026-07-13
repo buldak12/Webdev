@@ -47,10 +47,30 @@ class SimpleOrderController extends AbstractController
                 ], Response::HTTP_NOT_FOUND);
             }
 
+            // Create or get dummy address for mobile pickup orders
+            $addresses = $user->getAddresses();
+            if ($addresses->isEmpty()) {
+                $address = new \App\Entity\Address();
+                $address->setUser($user);
+                $address->setFullName($data['customer_name'] ?? 'Mobile Customer');
+                $address->setStreetAddress('Store Pickup');
+                $address->setCity('Manila');
+                $address->setProvince('Metro Manila');
+                $address->setPostalCode('1000');
+                $address->setCountry('Philippines');
+                $address->setPhone($data['customer_phone'] ?? '0000000000');
+                $em->persist($address);
+                $em->flush();
+            } else {
+                $address = $addresses->first();
+            }
+
             // Create order
             $order = new Order();
             $order->setUser($user);
             $order->setStatus(Order::STATUS_AWAITING_PAYMENT);
+            $order->setShippingAddress($address);
+            $order->setBillingAddress($address);
             
             // Add notes
             $notes = sprintf(
