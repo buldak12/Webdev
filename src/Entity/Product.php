@@ -325,9 +325,10 @@ class Product
 
     public function getLowestPrice(): string
     {
-        $lowest = $this->basePrice;
+        $base = $this->basePrice ?? '0.00';
+        $lowest = $base;
         foreach ($this->variants as $variant) {
-            $variantPrice = bcadd($this->basePrice, $variant->getPriceModifier(), 2);
+            $variantPrice = bcadd($base, $variant->getPriceModifier(), 2);
             if (bccomp($variantPrice, $lowest, 2) < 0) {
                 $lowest = $variantPrice;
             }
@@ -337,9 +338,10 @@ class Product
 
     public function getHighestPrice(): string
     {
-        $highest = $this->basePrice;
+        $base = $this->basePrice ?? '0.00';
+        $highest = $base;
         foreach ($this->variants as $variant) {
-            $variantPrice = bcadd($this->basePrice, $variant->getPriceModifier(), 2);
+            $variantPrice = bcadd($base, $variant->getPriceModifier(), 2);
             if (bccomp($variantPrice, $highest, 2) > 0) {
                 $highest = $variantPrice;
             }
