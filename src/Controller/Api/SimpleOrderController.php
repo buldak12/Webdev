@@ -118,14 +118,14 @@ class SimpleOrderController extends AbstractController
                     continue;
                 }
 
-                $unitPrice = (float) $variant->getFinalPrice();
+                $unitPrice = (float) $variant->getPrice();
                 $subtotal  = $unitPrice * $quantity;
                 $total    += $subtotal;
 
                 $itemsForStorage[] = [
                     'variant_id'   => $variant->getId(),
                     'product_name' => $variant->getProduct()->getName(),
-                    'variant_name' => $variant->getName(),
+                    'variant_name' => $variant->getDisplayName(),
                     'quantity'     => $quantity,
                     'unit_price'   => number_format($unitPrice, 2, '.', ''),
                     'subtotal'     => number_format($subtotal, 2, '.', ''),
