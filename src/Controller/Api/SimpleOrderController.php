@@ -93,9 +93,9 @@ class SimpleOrderController extends AbstractController
             }
 
             // Set totals
-            $order->setSubtotal($subtotal);
-            $order->setShippingFee(0);
-            $order->setTotal($subtotal);
+            $order->setSubtotal((string)$subtotal);
+            $order->setShippingCost('0');
+            $order->setTotal((string)$subtotal);
 
             $em->persist($order);
             $em->flush();
@@ -106,6 +106,7 @@ class SimpleOrderController extends AbstractController
                     'id' => $order->getId(),
                     'order_number' => $order->getOrderNumber(),
                     'status' => $order->getStatus(),
+                    'subtotal' => $order->getSubtotal(),
                     'total' => $order->getTotal(),
                     'created_at' => $order->getCreatedAt()->format('Y-m-d H:i:s')
                 ]
