@@ -312,8 +312,11 @@
             </a>
             
             <div class="nav-section">Sales</div>
-            <a href="{{ path('admin_orders') }}" class="nav-link {% if 'admin_order' in app.request.get('_route') %}active{% endif %}">
+            <a href="{{ path('admin_orders') }}" class="nav-link {% if 'admin_order' in app.request.get('_route') and 'mobile' not in app.request.get('_route') %}active{% endif %}">
                 Orders
+            </a>
+            <a href="{{ path('admin_mobile_orders') }}" class="nav-link {% if app.request.get('_route') starts with 'admin_mobile_orders' %}active{% endif %}">
+                <i class="bi bi-phone" style="font-size:0.75rem;margin-right:0.5rem;"></i>Mobile Orders
             </a>
             <a href="{{ path('admin_customers') }}" class="nav-link {% if app.request.get('_route') == 'admin_customers' %}active{% endif %}">
                 Customers

@@ -13,9 +13,10 @@ use App\Repository\UserRepository;
 use App\Service\OrderService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Routing\Attribute\Route;
 
 class OrderController extends AbstractController
 {
@@ -268,5 +269,56 @@ class OrderController extends AbstractController
 
         $this->addFlash('success', 'Order deleted successfully.');
         return $this->redirectAfterWrite($request, 'admin_orders', 'staff_sales_orders');
+    }
+
+    // ─── Mobile Orders ────────────────────────────────────────────────────────
+
+    #[Route('/admin/mobile-orders', name: 'admin_mobile_orders')]
+    public function mobileOrders(EntityManagerInterface $em): Response
+    {
+        $orders = [];
+        try {
+            $conn = $em->getConnection();
+            $tableExists = $conn->fetchOne(
+                "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'mobile_orders'"
+            );
+            if ($tableExists) {
+                $orders = $conn->fetchAllAssociative(
+                    'SELECT * FROM mobile_orders ORDER BY created_at DESC LIMIT 100'
+                );
+                foreach ($orders as &$o) {
+                    $o['items'] = json_decode($o['items_json'], true) ?? [];
+                    $o['order_number'] = 'MOB-' . str_pad((string) $o['id'], 6, '0', STR_PAD_LEFT);
+                }
+                unset($o);
+            }
+        } catch (\Exception $e) {
+            $this->addFlash('error', 'Could not load mobile orders: ' . $e->getMessage());
+        }
+
+        return $this->render('admin/orders/mobile.html.twig', [
+            'orders' => $orders,
+        ]);
+    }
+
+    #[Route('/admin/mobile-orders/{id}/status', name: 'admin_mobile_orders_status', methods: ['POST'])]
+    public function updateMobileOrderStatus(int $id, Request $request, EntityManagerInterface $em): Response
+    {
+        $newStatus = $request->request->get('status', 'pending');
+        $allowed = ['pending', 'confirmed', 'processing', 'ready', 'completed', 'cancelled'];
+        if (!in_array($newStatus, $allowed, true)) {
+            $this->addFlash('error', 'Invalid status.');
+            return $this->redirectToRoute('admin_mobile_orders');
+        }
+
+        try {
+            $conn = $em->getConnection();
+            $conn->update('mobile_orders', ['status' => $newStatus], ['id' => $id]);
+            $this->addFlash('success', 'Mobile order #' . $id . ' status updated to ' . $newStatus);
+        } catch (\Exception $e) {
+            $this->addFlash('error', 'Failed to update status: ' . $e->getMessage());
+        }
+
+        return $this->redirectToRoute('admin_mobile_orders');
     }
 }

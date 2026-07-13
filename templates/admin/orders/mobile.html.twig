@@ -1,0 +1,143 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}Mobile App Orders{% endblock %}
+{% block breadcrumb %}Sales / Mobile Orders{% endblock %}
+
+{% block body %}
+<div class="page-header d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="bi bi-phone me-2"></i>Mobile App Orders</h1>
+    <a href="{{ path('admin_orders') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i>Web Orders
+    </a>
+</div>
+
+{% for type, messages in app.flashes %}
+    {% for message in messages %}
+        <div class="alert alert-{{ type == 'error' ? 'danger' : type }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    {% endfor %}
+{% endfor %}
+
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Order #</th>
+                        <th>Customer</th>
+                        <th>Items</th>
+                        <th>Total</th>
+                        <th>Type</th>
+                        <th>Payment</th>
+                        <th>Status</th>
+                        <th>Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if orders is empty %}
+                        <tr>
+                            <td colspan="9" class="text-center py-5 text-muted">
+                                <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+                                No mobile orders yet
+                            </td>
+                        </tr>
+                    {% else %}
+                        {% for order in orders %}
+                        <tr>
+                            <td>
+                                <strong>{{ order.order_number }}</strong>
+                            </td>
+                            <td>
+                                <div><strong>{{ order.customer_name ?? order.customer_email }}</strong></div>
+                                <small class="text-muted">{{ order.customer_email }}</small>
+                                {% if order.customer_phone %}
+                                    <br><small class="text-muted">{{ order.customer_phone }}</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% for item in order.items %}
+                                    <div class="small">
+                                        <span class="badge bg-light text-dark me-1">×{{ item.quantity }}</span>
+                                        {{ item.product_name }}
+                                        {% if item.variant_name != item.product_name %}
+                                            <span class="text-muted">– {{ item.variant_name }}</span>
+                                        {% endif %}
+                                    </div>
+                                {% endfor %}
+                            </td>
+                            <td>
+                                <strong>₱{{ order.total|number_format(2) }}</strong>
+                            </td>
+                            <td>
+                                {% if order.fulfillment_type == 'delivery' %}
+                                    <span class="badge bg-info">
+                                        <i class="bi bi-truck me-1"></i>Delivery
+                                    </span>
+                                    {% if order.delivery_address %}
+                                        <br><small class="text-muted">{{ order.delivery_address }}</small>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="badge bg-secondary">
+                                        <i class="bi bi-shop me-1"></i>Pickup
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-light text-dark">{{ order.payment_method|upper }}</span>
+                            </td>
+                            <td>
+                                {% set status_colors = {
+                                    'pending':    'warning',
+                                    'confirmed':  'info',
+                                    'processing': 'primary',
+                                    'ready':      'success',
+                                    'completed':  'success',
+                                    'cancelled':  'danger'
+                                } %}
+                                <span class="badge bg-{{ status_colors[order.status]|default('secondary') }}">
+                                    {{ order.status|capitalize }}
+                                </span>
+                            </td>
+                            <td>
+                                <small>{{ order.created_at|date('M d, Y') }}</small>
+                                <br><small class="text-muted">{{ order.created_at|date('h:i A') }}</small>
+                            </td>
+                            <td>
+                                <div class="dropdown">
+                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" 
+                                            type="button" data-bs-toggle="dropdown">
+                                        Update
+                                    </button>
+                                    <ul class="dropdown-menu">
+                                        {% for status in ['pending','confirmed','processing','ready','completed','cancelled'] %}
+                                            <li>
+                                                <form method="post" action="{{ path('admin_mobile_orders_status', {id: order.id}) }}">
+                                                    <input type="hidden" name="status" value="{{ status }}">
+                                                    <button type="submit" 
+                                                            class="dropdown-item {{ order.status == status ? 'active' : '' }}">
+                                                        {{ status|capitalize }}
+                                                    </button>
+                                                </form>
+                                            </li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% if orders is not empty %}
+    <div class="card-footer text-muted small">
+        Showing {{ orders|length }} mobile order(s)
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
