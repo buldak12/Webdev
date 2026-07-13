@@ -41,6 +41,7 @@ class OrderItem
     private ?Order $order = null;
 
     #[ORM\ManyToOne(targetEntity: ProductVariant::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
     private ?ProductVariant $variant = null;
 
     #[ORM\PrePersist]
