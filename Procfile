@@ -1,1 +1,1 @@
-web: php bin/console cache:clear --env=prod --no-warmup && php bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration && php -S 0.0.0.0:${PORT:-8000} -t public
+web: php bin/console cache:clear --env=prod --no-warmup && php bin/console importmap:install && php bin/console asset-map:compile && php bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration && php -S 0.0.0.0:${PORT:-8000} -t public
