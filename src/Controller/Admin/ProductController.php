@@ -103,6 +103,10 @@ class ProductController extends AbstractController
                 $this->addFlash('success', 'Product updated successfully');
                 return $this->redirectToRoute($this->resolveProductsIndexRoute($request));
             } catch (\Exception $e) {
+                // Log the full error for debugging
+                error_log('Product update error: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
+                error_log('Stack trace: ' . $e->getTraceAsString());
+                
                 $this->addFlash('error', 'Error updating product: ' . $e->getMessage());
             }
         }
@@ -202,46 +206,64 @@ class ProductController extends AbstractController
         $stocks    = (array) $request->request->all('variant_stock');
         $prices    = (array) $request->request->all('variant_price');
 
-        if (!$isNew && $product->getId()) {
-            // Delete existing variants via raw SQL to avoid FK constraint on order_item.
-            // The FK was altered to ON DELETE SET NULL by migration; this also works
-            // if the migration hasn't run yet.
-            $conn = $em->getConnection();
-            $conn->executeStatement(
-                'DELETE FROM product_variant WHERE product_id = ?',
-                [$product->getId()]
-            );
-            // Clear Doctrine's identity map so it doesn't try to re-flush removed entities
-            $em->clear(ProductVariant::class);
-            // Re-fetch the product so variants collection is fresh
-            $em->refresh($product);
+        // Only rebuild variants if at least one flavor is provided
+        $hasVariants = false;
+        foreach ($flavors as $flavor) {
+            if (trim((string) $flavor) !== '') {
+                $hasVariants = true;
+                break;
+            }
         }
 
-        $productSku = $product->getSku();
-        if (!$productSku) {
-            $productSku = 'PROD-' . uniqid();
-        }
-        
-        foreach ($flavors as $i => $flavor) {
-            $flavor = trim((string) $flavor);
-            if ($flavor === '') {
-                continue;
+        if ($hasVariants) {
+            if (!$isNew && $product->getId()) {
+                // For edits: Delete existing variants via raw SQL
+                $conn = $em->getConnection();
+                
+                // First, null out order_item references to avoid FK violations
+                $conn->executeStatement(
+                    'UPDATE order_item oi 
+                     JOIN product_variant pv ON oi.variant_id = pv.id 
+                     SET oi.variant_id = NULL 
+                     WHERE pv.product_id = ?',
+                    [$product->getId()]
+                );
+                
+                // Then delete all variants for this product
+                $conn->executeStatement(
+                    'DELETE FROM product_variant WHERE product_id = ?',
+                    [$product->getId()]
+                );
             }
 
-            $variant = new ProductVariant();
-            $variant->setFlavor($flavor);
-            $variant->setNicotineStrength(trim((string) ($nicotines[$i] ?? '')) ?: null);
-            $variant->setStock(max(0, (int) ($stocks[$i] ?? 0)));
-            $variant->setPriceModifier(number_format((float) ($prices[$i] ?? 0), 2, '.', ''));
+            // Get or generate product SKU
+            $productSku = $product->getSku();
+            if (!$productSku) {
+                $productSku = 'PROD-' . uniqid();
+            }
             
-            // Generate unique SKU for variant
-            $variantSku = strtoupper(substr($productSku, 0, 10))
-                . '-' . strtoupper(substr(preg_replace('/[^a-z0-9]/i', '', $flavor), 0, 4))
-                . '-' . strtoupper(substr(uniqid('', true), -4));
-            
-            $variant->setSku($variantSku);
-            $product->addVariant($variant);
-            $em->persist($variant);
+            // Create new variants
+            foreach ($flavors as $i => $flavor) {
+                $flavor = trim((string) $flavor);
+                if ($flavor === '') {
+                    continue;
+                }
+
+                $variant = new ProductVariant();
+                $variant->setProduct($product); // Set the relationship
+                $variant->setFlavor($flavor);
+                $variant->setNicotineStrength(trim((string) ($nicotines[$i] ?? '')) ?: null);
+                $variant->setStock(max(0, (int) ($stocks[$i] ?? 0)));
+                $variant->setPriceModifier(number_format((float) ($prices[$i] ?? 0), 2, '.', ''));
+                
+                // Generate unique SKU for variant
+                $variantSku = strtoupper(substr($productSku, 0, 10))
+                    . '-' . strtoupper(substr(preg_replace('/[^a-z0-9]/i', '', $flavor), 0, 4))
+                    . '-' . strtoupper(substr(uniqid('', true), -4));
+                
+                $variant->setSku($variantSku);
+                $em->persist($variant);
+            }
         }
     }
 
