@@ -131,6 +131,7 @@ class ProductController extends AbstractController
         $name      = trim((string) $request->request->get('name', ''));
         $basePrice = trim((string) $request->request->get('base_price', '0'));
         $brand     = trim((string) $request->request->get('brand', ''));
+        $sku       = trim((string) $request->request->get('sku', ''));
         $desc      = $request->request->get('description');
         $shortDesc = $request->request->get('short_description');
 
@@ -141,12 +142,31 @@ class ProductController extends AbstractController
             throw new \RuntimeException('Base price must be a valid number.');
         }
 
-        // Generate a unique slug (append id or random suffix on conflict)
+        // Handle SKU
+        if ($isNew) {
+            if ($sku === '') {
+                // Auto-generate SKU if not provided
+                $sku = 'PROD-' . strtoupper(substr(md5($name . time()), 0, 8));
+            }
+            $product->setSku($sku);
+        }
+        // For edits, SKU is readonly and not updated
+
+        // Generate slug
         $baseSlug = (string) $slugger->slug($name)->lower();
         $slug     = $baseSlug;
-        if (!$isNew) {
-            // For edits, append the product id to guarantee uniqueness
-            $slug = $baseSlug . '-' . $product->getId();
+        
+        // Check if slug needs uniqueness suffix
+        if ($isNew) {
+            // For new products, add random suffix if needed
+            $slug = $baseSlug . '-' . substr(uniqid(), -6);
+        } else {
+            // For edits, keep existing slug if name unchanged, or regenerate with ID
+            if ($product->getName() !== $name) {
+                $slug = $baseSlug . '-' . $product->getId();
+            } else {
+                $slug = $product->getSlug(); // Keep existing slug
+            }
         }
 
         $product->setName($name);
@@ -155,8 +175,8 @@ class ProductController extends AbstractController
         $product->setShortDescription($shortDesc ?: null);
         $product->setBasePrice(number_format((float) $basePrice, 2, '.', ''));
         $product->setBrand($brand ?: null);
-        $product->setIsActive($request->request->getBoolean('is_active', false));
-        $product->setRequiresAgeVerification($request->request->getBoolean('requires_age_verification', false));
+        $product->setIsActive($request->request->getBoolean('is_active', true)); // Default to true
+        $product->setRequiresAgeVerification($request->request->getBoolean('requires_age_verification', true)); // Default to true for safety
 
         // Image
         $uploaded = $this->handleMainImageUpload($request->files->get('main_image_file'));
@@ -197,7 +217,11 @@ class ProductController extends AbstractController
             $em->refresh($product);
         }
 
-        $productSku = (string) $product->getSku();
+        $productSku = $product->getSku();
+        if (!$productSku) {
+            $productSku = 'PROD-' . uniqid();
+        }
+        
         foreach ($flavors as $i => $flavor) {
             $flavor = trim((string) $flavor);
             if ($flavor === '') {
@@ -209,12 +233,13 @@ class ProductController extends AbstractController
             $variant->setNicotineStrength(trim((string) ($nicotines[$i] ?? '')) ?: null);
             $variant->setStock(max(0, (int) ($stocks[$i] ?? 0)));
             $variant->setPriceModifier(number_format((float) ($prices[$i] ?? 0), 2, '.', ''));
-            // Unique SKU: product-SKU + hash of flavor+nicotine + random suffix
-            $variant->setSku(
-                strtoupper(substr($productSku, 0, 18))
-                . '-' . strtoupper(substr(md5($flavor . ($nicotines[$i] ?? '')), 0, 4))
-                . '-' . strtoupper(substr(uniqid('', true), -5))
-            );
+            
+            // Generate unique SKU for variant
+            $variantSku = strtoupper(substr($productSku, 0, 10))
+                . '-' . strtoupper(substr(preg_replace('/[^a-z0-9]/i', '', $flavor), 0, 4))
+                . '-' . strtoupper(substr(uniqid('', true), -4));
+            
+            $variant->setSku($variantSku);
             $product->addVariant($variant);
             $em->persist($variant);
         }
@@ -309,7 +334,9 @@ class ProductController extends AbstractController
 
         if (!$variant) {
             $this->addFlash('error', 'Variant not found');
-            return $this->redirectToRoute('admin_products_edit', ['id' => $id]);
+            $prefix = str_starts_with((string) $request->attributes->get('_route', ''), 'staff_products')
+                ? 'staff_products_edit' : 'admin_products_edit';
+            return $this->redirectToRoute($prefix, ['id' => $id]);
         }
 
         $newStock = $request->request->get('new_stock');
@@ -327,7 +354,9 @@ class ProductController extends AbstractController
         $em->flush();
         $this->addFlash('success', sprintf('Stock updated — now %d units.', $variant->getStock()));
 
-        return $this->redirectToRoute('admin_products_edit', ['id' => $id]);
+        $prefix = str_starts_with((string) $request->attributes->get('_route', ''), 'staff_products')
+            ? 'staff_products_edit' : 'admin_products_edit';
+        return $this->redirectToRoute($prefix, ['id' => $id]);
     }
 
     // ─── Delete single variant ───────────────────────────────────────────────
@@ -354,6 +383,9 @@ class ProductController extends AbstractController
         $conn->executeStatement('DELETE FROM product_variant WHERE id = ? AND product_id = ?', [$variantId, $id]);
 
         $this->addFlash('success', 'Variant deleted.');
-        return $this->redirectToRoute('admin_products_edit', ['id' => $id]);
+        
+        $prefix = str_starts_with((string) $request->attributes->get('_route', ''), 'staff_products')
+            ? 'staff_products_edit' : 'admin_products_edit';
+        return $this->redirectToRoute($prefix, ['id' => $id]);
     }
 }
