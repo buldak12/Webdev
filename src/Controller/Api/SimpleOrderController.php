@@ -2,6 +2,11 @@
 
 namespace App\Controller\Api;
 
+use App\Entity\Order;
+use App\Entity\OrderItem;
+use App\Repository\ProductVariantRepository;
+use App\Repository\UserRepository;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -18,14 +23,98 @@ class SimpleOrderController extends AbstractController
     }
 
     #[Route('/order', name: 'api_test_order', methods: ['POST'])]
-    public function testOrder(Request $request): JsonResponse
-    {
-        $data = json_decode($request->getContent(), true);
-        
-        return $this->json([
-            'message' => 'Test order received',
-            'received_data' => $data,
-            'timestamp' => time()
-        ], Response::HTTP_OK);
+    public function createSimpleOrder(
+        Request $request,
+        EntityManagerInterface $em,
+        UserRepository $userRepository,
+        ProductVariantRepository $variantRepository
+    ): JsonResponse {
+        try {
+            $data = json_decode($request->getContent(), true);
+            
+            // Basic validation
+            if (!isset($data['customer_email'], $data['items']) || empty($data['items'])) {
+                return $this->json([
+                    'error' => 'Missing customer_email or items'
+                ], Response::HTTP_BAD_REQUEST);
+            }
+
+            // Find user
+            $user = $userRepository->findOneBy(['email' => $data['customer_email']]);
+            if (!$user) {
+                return $this->json([
+                    'error' => 'User not found. Please register first.'
+                ], Response::HTTP_NOT_FOUND);
+            }
+
+            // Create order
+            $order = new Order();
+            $order->setUser($user);
+            $order->setStatus(Order::STATUS_AWAITING_PAYMENT);
+            
+            // Add notes
+            $notes = sprintf(
+                "Mobile App Order\nName: %s\nPhone: %s\nEmail: %s",
+                $data['customer_name'] ?? 'N/A',
+                $data['customer_phone'] ?? 'N/A',
+                $data['customer_email']
+            );
+            $order->setNotes($notes);
+
+            $subtotal = 0.0;
+
+            // Add items
+            foreach ($data['items'] as $itemData) {
+                if (!isset($itemData['variant_id'], $itemData['quantity'])) {
+                    continue;
+                }
+
+                $variant = $variantRepository->find($itemData['variant_id']);
+                if (!$variant) {
+                    return $this->json([
+                        'error' => "Variant {$itemData['variant_id']} not found"
+                    ], Response::HTTP_BAD_REQUEST);
+                }
+
+                $quantity = (int) $itemData['quantity'];
+
+                // Create order item
+                $orderItem = new OrderItem();
+                $orderItem->setOrder($order);
+                $orderItem->setVariant($variant);
+                $orderItem->setQuantity($quantity);
+                $orderItem->setUnitPrice($variant->getFinalPrice());
+                $orderItem->setSubtotal($variant->getFinalPrice() * $quantity);
+
+                $order->addItem($orderItem);
+                $em->persist($orderItem);
+
+                $subtotal += $variant->getFinalPrice() * $quantity;
+            }
+
+            // Set totals
+            $order->setSubtotal($subtotal);
+            $order->setShippingFee(0);
+            $order->setTotal($subtotal);
+
+            $em->persist($order);
+            $em->flush();
+
+            return $this->json([
+                'message' => 'Order created successfully',
+                'order' => [
+                    'id' => $order->getId(),
+                    'order_number' => $order->getOrderNumber(),
+                    'status' => $order->getStatus(),
+                    'total' => $order->getTotal(),
+                    'created_at' => $order->getCreatedAt()->format('Y-m-d H:i:s')
+                ]
+            ], Response::HTTP_CREATED);
+
+        } catch (\Exception $e) {
+            return $this->json([
+                'error' => 'Order creation failed: ' . $e->getMessage()
+            ], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
     }
 }
