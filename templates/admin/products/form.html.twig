@@ -5,80 +5,181 @@
 
 {% block body %}
 {% set route_prefix = products_route_prefix|default('admin_products') %}
+
 <div class="page-header d-flex justify-content-between align-items-center">
     <h1>{% if product %}Edit Product{% else %}Add New Product{% endif %}</h1>
-    <a href="{{ path(route_prefix) }}" class="btn btn-outline-secondary btn-icon" title="Back to products" aria-label="Back to products">
-        <i class="bi bi-arrow-left" aria-hidden="true"></i>
-        <span class="visually-hidden">Back to Products</span>
+    <a href="{{ path(route_prefix) }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i>Back
     </a>
 </div>
 
+{% for type, messages in app.flashes %}
+    {% for message in messages %}
+        <div class="alert alert-{{ type == 'error' ? 'danger' : type }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    {% endfor %}
+{% endfor %}
+
+{# ── Stock management panel for EXISTING products ── #}
+{% if product and product.variants|length > 0 %}
+<div class="card mb-4 border-success">
+    <div class="card-header d-flex justify-content-between align-items-center" style="background:#f0fdf4;">
+        <h5 class="mb-0 text-success"><i class="bi bi-boxes me-2"></i>Stock Management</h5>
+        <span class="badge bg-success">{{ product.totalStock }} total units</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Variant</th>
+                        <th>Current Stock</th>
+                        <th>Reserved</th>
+                        <th>Available</th>
+                        <th>Quick Adjust</th>
+                        <th>Set Exact</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for variant in product.variants %}
+                    <tr>
+                        <td>
+                            <div class="fw-semibold">{{ variant.flavor ?? 'Default' }}</div>
+                            {% if variant.nicotineStrength %}
+                                <small class="text-muted">{{ variant.nicotineStrength }}</small>
+                            {% endif %}
+                            <br><small class="text-muted">SKU: {{ variant.sku }}</small>
+                        </td>
+                        <td>
+                            <span class="badge bg-{{ variant.stock <= variant.lowStockThreshold ? 'warning text-dark' : 'success' }} fs-6">
+                                {{ variant.stock }}
+                            </span>
+                        </td>
+                        <td><span class="text-muted">{{ variant.reservedStock }}</span></td>
+                        <td>
+                            <span class="fw-semibold {{ variant.availableStock <= 0 ? 'text-danger' : 'text-success' }}">
+                                {{ variant.availableStock }}
+                            </span>
+                        </td>
+                        <td>
+                            {# Quick +/- buttons #}
+                            <form method="post" action="{{ path('admin_products_variant_stock', {id: product.id, variantId: variant.id}) }}" class="d-inline-flex gap-1 align-items-center">
+                                <input type="hidden" name="action" value="remove">
+                                <input type="number" name="quantity" value="1" min="1" class="form-control form-control-sm" style="width:65px;">
+                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Remove stock">
+                                    <i class="bi bi-dash-lg"></i>
+                                </button>
+                            </form>
+                            <form method="post" action="{{ path('admin_products_variant_stock', {id: product.id, variantId: variant.id}) }}" class="d-inline-flex gap-1 align-items-center ms-1">
+                                <input type="hidden" name="action" value="add">
+                                <input type="number" name="quantity" value="1" min="1" class="form-control form-control-sm" style="width:65px;">
+                                <button type="submit" class="btn btn-sm btn-outline-success" title="Add stock">
+                                    <i class="bi bi-plus-lg"></i>
+                                </button>
+                            </form>
+                        </td>
+                        <td>
+                            {# Set exact stock #}
+                            <form method="post" action="{{ path('admin_products_variant_stock', {id: product.id, variantId: variant.id}) }}" class="d-inline-flex gap-1 align-items-center">
+                                <input type="number" name="new_stock" placeholder="e.g. 50" min="0" class="form-control form-control-sm" style="width:90px;">
+                                <button type="submit" class="btn btn-sm btn-primary">Set</button>
+                            </form>
+                        </td>
+                        <td>
+                            <form method="post" action="{{ path('admin_products_variant_delete', {id: product.id, variantId: variant.id}) }}"
+                                  onsubmit="return confirm('Delete this variant permanently?')">
+                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete variant">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{# ── Main product form ── #}
 <form method="post" enctype="multipart/form-data" id="productForm">
     <div class="row">
         <!-- Main Content -->
         <div class="col-lg-8">
+
             <!-- Basic Info -->
             <div class="card mb-4">
-                <div class="card-header bg-white">
-                    <h5 class="mb-0">Basic Information</h5>
-                </div>
+                <div class="card-header"><h5 class="mb-0">Basic Information</h5></div>
                 <div class="card-body">
                     <div class="mb-3">
                         <label class="form-label">Product Name <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" name="name" value="{{ product ? product.name : '' }}" placeholder="e.g., Lilac Ice Premium E-Liquid" required>
+                        <input type="text" class="form-control" name="name" value="{{ product ? product.name : '' }}" required>
                     </div>
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label">SKU <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" name="sku" value="{{ product ? product.sku : '' }}" placeholder="e.g., LIL-ICE-30" {{ product ? 'readonly' : '' }} required>
+                            <input type="text" class="form-control" name="sku" value="{{ product ? product.sku : '' }}"
+                                   {{ product ? 'readonly' : '' }} required>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Category <span class="text-danger">*</span></label>
                             <select class="form-select" name="category_id" required>
-                                <option value="">Select category...</option>
+                                <option value="">Select category…</option>
                                 {% for category in categories %}
-                                    <option value="{{ category.id }}" {{ product and product.category and product.category.id == category.id ? 'selected' : '' }}>{{ category.name }}</option>
+                                    <option value="{{ category.id }}"
+                                        {{ product and product.category and product.category.id == category.id ? 'selected' : '' }}>
+                                        {{ category.name }}
+                                    </option>
                                 {% endfor %}
                             </select>
                         </div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Short Description</label>
-                        <input type="text" class="form-control" name="short_description" value="{{ product ? product.shortDescription : '' }}" placeholder="e.g., 30ml bottle">
+                        <input type="text" class="form-control" name="short_description"
+                               value="{{ product ? product.shortDescription : '' }}" placeholder="e.g., 30ml bottle">
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Description</label>
-                        <textarea class="form-control" name="description" rows="4" placeholder="Enter product description...">{{ product ? product.description : '' }}</textarea>
+                        <textarea class="form-control" name="description" rows="4">{{ product ? product.description : '' }}</textarea>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Brand</label>
-                        <input type="text" class="form-control" name="brand" value="{{ product ? product.brand : '' }}" placeholder="e.g., Easy Vape Premium">
+                        <input type="text" class="form-control" name="brand" value="{{ product ? product.brand : '' }}">
                     </div>
                 </div>
             </div>
 
             <!-- Variants -->
             <div class="card mb-4">
-                <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">Product Variants</h5>
-                    <button type="button" class="btn btn-sm btn-outline-primary btn-icon" onclick="addVariantRow()" title="Add variant" aria-label="Add variant">
-                        <i class="bi bi-plus-lg" aria-hidden="true"></i>
-                        <span class="visually-hidden">Add Variant</span>
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        {% if product %}Rebuild Variants{% else %}Product Variants{% endif %}
+                    </h5>
+                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="addVariantRow()">
+                        <i class="bi bi-plus-lg me-1"></i>Add Row
                     </button>
                 </div>
                 <div class="card-body">
-                    <p class="text-muted mb-3">Add variants for different nicotine strengths or flavors.</p>
-                    
-                    <!-- Variant Table -->
+                    {% if product %}
+                    <div class="alert alert-warning py-2 small mb-3">
+                        <i class="bi bi-exclamation-triangle me-1"></i>
+                        <strong>Note:</strong> Saving this form replaces all variants. Use the <strong>Stock Management</strong> panel above to adjust individual stock without losing data.
+                    </div>
+                    {% endif %}
                     <div class="table-responsive">
                         <table class="table table-bordered" id="variantsTable">
                             <thead class="table-light">
                                 <tr>
                                     <th>Flavor</th>
                                     <th>Nicotine</th>
-                                    <th style="width: 120px;">Price Mod (₱)</th>
-                                    <th style="width: 100px;">Stock</th>
-                                    <th style="width: 60px;"></th>
+                                    <th style="width:130px">Price Mod (₱)</th>
+                                    <th style="width:100px">Stock</th>
+                                    <th style="width:50px"></th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -90,9 +191,8 @@
                                         <td><input type="number" step="0.01" class="form-control form-control-sm" name="variant_price[]" value="{{ variant.priceModifier }}"></td>
                                         <td><input type="number" class="form-control form-control-sm" name="variant_stock[]" value="{{ variant.stock }}"></td>
                                         <td>
-                                            <button type="button" class="btn btn-sm btn-outline-danger btn-icon" onclick="this.closest('tr').remove()" title="Remove variant" aria-label="Remove variant">
-                                                <i class="bi bi-trash" aria-hidden="true"></i>
-                                                <span class="visually-hidden">Remove</span>
+                                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest('tr').remove()" title="Remove">
+                                                <i class="bi bi-trash"></i>
                                             </button>
                                         </td>
                                     </tr>
@@ -104,9 +204,8 @@
                                     <td><input type="number" step="0.01" class="form-control form-control-sm" name="variant_price[]" value="0"></td>
                                     <td><input type="number" class="form-control form-control-sm" name="variant_stock[]" value="0"></td>
                                     <td>
-                                        <button type="button" class="btn btn-sm btn-outline-danger btn-icon" onclick="this.closest('tr').remove()" title="Remove variant" aria-label="Remove variant">
-                                            <i class="bi bi-trash" aria-hidden="true"></i>
-                                            <span class="visually-hidden">Remove</span>
+                                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest('tr').remove()">
+                                            <i class="bi bi-trash"></i>
                                         </button>
                                     </td>
                                 </tr>
@@ -117,30 +216,24 @@
                 </div>
             </div>
 
-            <!-- Images -->
+            <!-- Image -->
             <div class="card mb-4">
-                <div class="card-header bg-white">
-                    <h5 class="mb-0">Product Images</h5>
-                </div>
+                <div class="card-header"><h5 class="mb-0">Product Image</h5></div>
                 <div class="card-body">
-                    <div class="mb-3">
-                        <label class="form-label">Product Image</label>
-                        <input type="hidden" name="main_image" id="mainImagePath" value="{{ product and product.mainImage ? product.mainImage : '' }}">
-                        <div class="dropzone border rounded-4 p-4 text-center bg-light" id="imageDropzone">
-                            <div class="mb-2">
-                                <i class="bi bi-cloud-arrow-up display-6 text-secondary"></i>
-                            </div>
-                            <h6 class="mb-1">Drag and drop an image here</h6>
-                            <p class="text-muted mb-3">or click to browse your files</p>
-                            <input type="file" class="d-none" name="main_image_file" id="mainImageFile" accept="image/*">
-                            <button type="button" class="btn btn-outline-primary btn-sm">Choose Image</button>
-                        </div>
-                        <div class="form-text mt-2">PNG, JPG, JPEG, WEBP, or GIF.</div>
+                    <input type="hidden" name="main_image" id="mainImagePath" value="{{ product and product.mainImage ? product.mainImage : '' }}">
+                    <div class="dropzone border rounded-4 p-4 text-center bg-light" id="imageDropzone">
+                        <i class="bi bi-cloud-arrow-up display-6 text-secondary d-block mb-2"></i>
+                        <h6 class="mb-1">Drag and drop an image here</h6>
+                        <p class="text-muted mb-3">or click to browse</p>
+                        <input type="file" class="d-none" name="main_image_file" id="mainImageFile" accept="image/*">
+                        <button type="button" class="btn btn-outline-primary btn-sm">Choose Image</button>
                     </div>
-                    <div id="imagePreviewWrap" class="{% if not product or not product.mainImage %}d-none{% endif %}">
-                        <img id="imagePreview" src="{{ product and product.mainImage ? asset(product.mainImage) : '' }}" class="img-thumbnail" style="max-height: 180px; object-fit: cover;">
+                    <div id="imagePreviewWrap" class="{{ (not product or not product.mainImage) ? 'd-none' : '' }} mt-3">
+                        <img id="imagePreview"
+                             src="{{ product and product.mainImage ? asset(product.mainImage) : '' }}"
+                             class="img-thumbnail" style="max-height:180px;object-fit:cover;">
                         {% if product and product.mainImage %}
-                            <p class="small text-muted mt-2 mb-0">Current image: {{ product.mainImage }}</p>
+                            <p class="small text-muted mt-2">Current: {{ product.mainImage }}</p>
                         {% endif %}
                     </div>
                 </div>
@@ -151,55 +244,82 @@
         <div class="col-lg-4">
             <!-- Publish -->
             <div class="card mb-4">
-                <div class="card-header bg-white">
-                    <h5 class="mb-0">Publish</h5>
-                </div>
+                <div class="card-header"><h5 class="mb-0">Publish</h5></div>
                 <div class="card-body">
-                    <div class="mb-3">
-                        <div class="form-check form-switch">
-                            <input class="form-check-input" type="checkbox" name="is_active" id="isActive" {{ (not product) or product.isActive ? 'checked' : '' }}>
-                            <label class="form-check-label" for="isActive">Active</label>
-                        </div>
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" name="is_active" id="isActive"
+                               {{ (not product) or product.isActive ? 'checked' : '' }}>
+                        <label class="form-check-label" for="isActive">Active (visible to customers)</label>
                     </div>
                     <div class="d-grid gap-2">
-                        <button type="submit" class="btn btn-primary btn-icon" title="{{ product ? 'Update product' : 'Save product' }}" aria-label="{{ product ? 'Update product' : 'Save product' }}">
-                            <i class="bi bi-check-lg" aria-hidden="true"></i>
-                            <span class="visually-hidden">{{ product ? 'Update Product' : 'Save Product' }}</span>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-lg me-1"></i>{{ product ? 'Update Product' : 'Save Product' }}
                         </button>
-                        <a href="{{ path(route_prefix) }}" class="btn btn-outline-secondary btn-icon" title="Cancel" aria-label="Cancel">
-                            <i class="bi bi-x-lg" aria-hidden="true"></i>
-                            <span class="visually-hidden">Cancel</span>
-                        </a>
+                        <a href="{{ path(route_prefix) }}" class="btn btn-outline-secondary">Cancel</a>
                     </div>
                 </div>
             </div>
 
             <!-- Pricing -->
             <div class="card mb-4">
-                <div class="card-header bg-white">
-                    <h5 class="mb-0">Pricing</h5>
-                </div>
+                <div class="card-header"><h5 class="mb-0">Pricing</h5></div>
                 <div class="card-body">
-                    <div class="mb-3">
-                        <label class="form-label">Base Price (₱) <span class="text-danger">*</span></label>
-                        <input type="number" step="0.01" class="form-control" name="base_price" value="{{ product ? product.basePrice : '' }}" placeholder="0.00" required>
+                    <label class="form-label">Base Price (₱) <span class="text-danger">*</span></label>
+                    <input type="number" step="0.01" class="form-control" name="base_price"
+                           value="{{ product ? product.basePrice : '' }}" placeholder="0.00" required>
+                    {% if product %}
+                    <small class="text-muted d-block mt-2">
+                        Range: ₱{{ product.lowestPrice }} – ₱{{ product.highestPrice }}
+                    </small>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if product %}
+            <!-- Quick Stats -->
+            <div class="card mb-4">
+                <div class="card-header"><h5 class="mb-0">Stock Summary</h5></div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Total Stock</span>
+                        <strong>{{ product.totalStock }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Reserved</span>
+                        <strong>{{ product.reservedStock }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted">Available</span>
+                        <strong class="{{ product.availableStock <= 0 ? 'text-danger' : 'text-success' }}">
+                            {{ product.availableStock }}
+                        </strong>
                     </div>
                 </div>
             </div>
 
-            <!-- Age Restriction -->
-            <div class="card">
-                <div class="card-header bg-white">
-                    <h5 class="mb-0">Age Restriction</h5>
-                </div>
+            <!-- Danger Zone -->
+            <div class="card border-danger">
+                <div class="card-header text-danger"><h5 class="mb-0">Danger Zone</h5></div>
                 <div class="card-body">
-                    <div class="form-check mb-2">
-                        <input class="form-check-input" type="checkbox" name="requires_age_verification" id="ageRestricted" {{ (not product) or product.requiresAgeVerification ? 'checked' : '' }}>
-                        <label class="form-check-label" for="ageRestricted">
-                            Requires age verification (18+)
-                        </label>
+                    <form method="post" action="{{ path('admin_products_delete', {id: product.id}) }}"
+                          onsubmit="return confirm('Permanently delete this product and all its variants?')">
+                        <button type="submit" class="btn btn-danger w-100">
+                            <i class="bi bi-trash me-1"></i>Delete Product
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Age Restriction -->
+            <div class="card mt-4">
+                <div class="card-header"><h5 class="mb-0">Age Restriction</h5></div>
+                <div class="card-body">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="requires_age_verification" id="ageRestricted"
+                               {{ (not product) or product.requiresAgeVerification ? 'checked' : '' }}>
+                        <label class="form-check-label" for="ageRestricted">Requires 18+ verification</label>
                     </div>
-                    <small class="text-muted">This product contains nicotine and requires age verification before purchase.</small>
                 </div>
             </div>
         </div>
@@ -209,53 +329,26 @@
 <script>
 const dropzone = document.getElementById('imageDropzone');
 const fileInput = document.getElementById('mainImageFile');
-const preview = document.getElementById('imagePreview');
+const preview   = document.getElementById('imagePreview');
 const previewWrap = document.getElementById('imagePreviewWrap');
-const hiddenPath = document.getElementById('mainImagePath');
 
 if (dropzone && fileInput) {
     dropzone.addEventListener('click', () => fileInput.click());
-    dropzone.addEventListener('dragover', (event) => {
-        event.preventDefault();
-        dropzone.classList.add('border-primary', 'bg-white');
+    dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('border-primary'); });
+    dropzone.addEventListener('dragleave', () => dropzone.classList.remove('border-primary'));
+    dropzone.addEventListener('drop', e => {
+        e.preventDefault();
+        dropzone.classList.remove('border-primary');
+        if (e.dataTransfer.files.length > 0) { fileInput.files = e.dataTransfer.files; showPreview(e.dataTransfer.files[0]); }
     });
-    dropzone.addEventListener('dragleave', () => {
-        dropzone.classList.remove('border-primary', 'bg-white');
-    });
-    dropzone.addEventListener('drop', (event) => {
-        event.preventDefault();
-        dropzone.classList.remove('border-primary', 'bg-white');
-        if (event.dataTransfer.files.length > 0) {
-            fileInput.files = event.dataTransfer.files;
-            updatePreview(event.dataTransfer.files[0]);
-        }
-    });
+    fileInput.addEventListener('change', () => { if (fileInput.files.length > 0) showPreview(fileInput.files[0]); });
 }
 
-if (fileInput) {
-    fileInput.addEventListener('change', () => {
-        if (fileInput.files.length > 0) {
-            updatePreview(fileInput.files[0]);
-        }
-    });
-}
-
-function updatePreview(file) {
-    if (!file) {
-        return;
-    }
-
+function showPreview(file) {
     const reader = new FileReader();
-    reader.onload = (event) => {
-        if (preview) {
-            preview.src = event.target.result;
-        }
-        if (previewWrap) {
-            previewWrap.classList.remove('d-none');
-        }
-        if (hiddenPath) {
-            hiddenPath.value = '';
-        }
+    reader.onload = e => {
+        if (preview) preview.src = e.target.result;
+        if (previewWrap) previewWrap.classList.remove('d-none');
     };
     reader.readAsDataURL(file);
 }
@@ -268,27 +361,14 @@ function addVariantRow() {
         <td><input type="text" class="form-control form-control-sm" name="variant_nicotine[]" placeholder="e.g., 3mg"></td>
         <td><input type="number" step="0.01" class="form-control form-control-sm" name="variant_price[]" value="0"></td>
         <td><input type="number" class="form-control form-control-sm" name="variant_stock[]" value="0"></td>
-        <td>
-            <button type="button" class="btn btn-sm btn-outline-danger btn-icon" onclick="this.closest('tr').remove()" title="Remove variant" aria-label="Remove variant">
-                <i class="bi bi-trash" aria-hidden="true"></i>
-                <span class="visually-hidden">Remove</span>
-            </button>
-        </td>
+        <td><button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest('tr').remove()"><i class="bi bi-trash"></i></button></td>
     `;
     tbody.appendChild(row);
 }
 </script>
 
 <style>
-.dropzone {
-    cursor: pointer;
-    transition: all 0.2s ease;
-    border-style: dashed !important;
-}
-
-.dropzone:hover {
-    border-color: #0d6efd;
-    background: #fff;
-}
+.dropzone { cursor:pointer; transition:all .2s; border-style:dashed !important; }
+.dropzone:hover { border-color:#0d6efd !important; background:#fff; }
 </style>
 {% endblock %}

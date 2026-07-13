@@ -11,7 +11,7 @@ use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\String\Slugger\SluggerInterface;
 
 class ProductController extends AbstractController
@@ -219,5 +219,92 @@ class ProductController extends AbstractController
         }
 
         return $this->redirectToRoute($this->resolveProductsIndexRoute($request));
+    }
+
+    /**
+     * Adjust stock for a single variant (add or remove stock)
+     * POST /admin/products/{id}/variants/{variantId}/stock
+     */
+    #[Route('/admin/products/{id}/variants/{variantId}/stock', name: 'admin_products_variant_stock', methods: ['POST'])]
+    #[Route('/staff/products/{id}/variants/{variantId}/stock', name: 'staff_products_variant_stock', methods: ['POST'])]
+    public function adjustStock(
+        int $id,
+        int $variantId,
+        Request $request,
+        ProductRepository $productRepository,
+        EntityManagerInterface $em
+    ): Response {
+        $product = $productRepository->find($id);
+        if (!$product) {
+            $this->addFlash('error', 'Product not found');
+            return $this->redirectToRoute($this->resolveProductsIndexRoute($request));
+        }
+
+        $variant = null;
+        foreach ($product->getVariants() as $v) {
+            if ($v->getId() === $variantId) {
+                $variant = $v;
+                break;
+            }
+        }
+
+        if (!$variant) {
+            $this->addFlash('error', 'Variant not found');
+            return $this->redirectToRoute('admin_products_edit', ['id' => $id]);
+        }
+
+        $action    = $request->request->get('action', 'add');
+        $quantity  = abs((int) $request->request->get('quantity', 0));
+        $newStock  = $request->request->get('new_stock');
+
+        if ($newStock !== null && $newStock !== '') {
+            // Absolute set
+            $variant->setStock(max(0, (int) $newStock));
+        } elseif ($action === 'remove') {
+            $variant->setStock(max(0, $variant->getStock() - $quantity));
+        } else {
+            $variant->addStock($quantity);
+        }
+
+        $em->flush();
+        $this->addFlash('success', sprintf(
+            'Stock updated for %s — now %d units.',
+            $variant->getDisplayName(),
+            $variant->getStock()
+        ));
+
+        return $this->redirectToRoute('admin_products_edit', ['id' => $id]);
+    }
+
+    /**
+     * Delete a single variant
+     * POST /admin/products/{id}/variants/{variantId}/delete
+     */
+    #[Route('/admin/products/{id}/variants/{variantId}/delete', name: 'admin_products_variant_delete', methods: ['POST'])]
+    #[Route('/staff/products/{id}/variants/{variantId}/delete', name: 'staff_products_variant_delete', methods: ['POST'])]
+    public function deleteVariant(
+        int $id,
+        int $variantId,
+        Request $request,
+        ProductRepository $productRepository,
+        EntityManagerInterface $em
+    ): Response {
+        $product = $productRepository->find($id);
+        if (!$product) {
+            $this->addFlash('error', 'Product not found');
+            return $this->redirectToRoute($this->resolveProductsIndexRoute($request));
+        }
+
+        foreach ($product->getVariants() as $v) {
+            if ($v->getId() === $variantId) {
+                $product->removeVariant($v);
+                $em->remove($v);
+                $em->flush();
+                $this->addFlash('success', 'Variant deleted successfully.');
+                break;
+            }
+        }
+
+        return $this->redirectToRoute('admin_products_edit', ['id' => $id]);
     }
 }
