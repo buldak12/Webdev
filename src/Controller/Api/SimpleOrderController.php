@@ -2,12 +2,9 @@
 
 namespace App\Controller\Api;
 
-use App\Entity\Address;
-use App\Entity\Order;
-use App\Entity\OrderItem;
-use App\Repository\AddressRepository;
+use App\Entity\MobileOrder;
+use App\Repository\MobileOrderRepository;
 use App\Repository\ProductVariantRepository;
-use App\Repository\UserRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -31,7 +28,7 @@ class SimpleOrderController extends AbstractController
     #[Route('/orders', name: 'api_test_orders_list', methods: ['GET'])]
     public function getUserOrders(
         Request $request,
-        UserRepository $userRepository
+        MobileOrderRepository $mobileOrderRepository
     ): JsonResponse {
         $email = $request->query->get('email');
         
@@ -41,45 +38,24 @@ class SimpleOrderController extends AbstractController
             ], Response::HTTP_BAD_REQUEST);
         }
 
-        $user = $userRepository->findOneBy(['email' => $email]);
-        if (!$user) {
-            return $this->json([
-                'success' => true,
-                'data' => [],
-                'message' => 'No orders found'
-            ]);
-        }
-
-        $orders = $user->getOrders();
+        $mobileOrders = $mobileOrderRepository->findByEmail($email);
         $ordersData = [];
         
-        foreach ($orders as $order) {
-            $items = [];
-            foreach ($order->getItems() as $item) {
-                $items[] = [
-                    'id' => $item->getId(),
-                    'product_name' => $item->getVariant()->getProduct()->getName(),
-                    'variant_name' => $item->getVariant()->getName(),
-                    'quantity' => $item->getQuantity(),
-                    'unit_price' => $item->getUnitPrice(),
-                    'subtotal' => $item->getSubtotal(),
-                ];
-            }
+        foreach ($mobileOrders as $order) {
+            $items = json_decode($order->getItemsJson(), true) ?? [];
             
             $ordersData[] = [
                 'id' => $order->getId(),
-                'order_number' => $order->getOrderNumber(),
+                'order_number' => 'MOB-' . str_pad($order->getId(), 6, '0', STR_PAD_LEFT),
                 'status' => $order->getStatus(),
-                'subtotal' => $order->getSubtotal(),
-                'shipping_cost' => $order->getShippingCost(),
-                'discount' => $order->getDiscount(),
-                'tax' => $order->getTax(),
                 'total' => $order->getTotal(),
                 'items' => $items,
                 'items_count' => count($items),
-                'notes' => $order->getNotes(),
-                'fulfillment_type' => 'pickup', // Extract from notes if needed
-                'payment_method' => 'cash', // Extract from notes if needed
+                'fulfillment_type' => $order->getFulfillmentType(),
+                'payment_method' => $order->getPaymentMethod(),
+                'delivery_address' => $order->getDeliveryAddress(),
+                'customer_name' => $order->getCustomerName(),
+                'customer_phone' => $order->getCustomerPhone(),
                 'created_at' => $order->getCreatedAt()->format('Y-m-d H:i:s'),
             ];
         }
@@ -95,13 +71,11 @@ class SimpleOrderController extends AbstractController
     public function createSimpleOrder(
         Request $request,
         EntityManagerInterface $em,
-        UserRepository $userRepository,
         ProductVariantRepository $variantRepository
     ): JsonResponse {
         try {
             $data = json_decode($request->getContent(), true);
             
-            // Validate required fields
             if (!isset($data['customer_email'])) {
                 return $this->json(['error' => 'Missing customer_email'], Response::HTTP_BAD_REQUEST);
             }
@@ -110,55 +84,10 @@ class SimpleOrderController extends AbstractController
                 return $this->json(['error' => 'Missing items'], Response::HTTP_BAD_REQUEST);
             }
 
-            // Find user by email
-            $user = $userRepository->findOneBy(['email' => $data['customer_email']]);
-            if (!$user) {
-                return $this->json(['error' => 'User not found. Please register first.'], Response::HTTP_NOT_FOUND);
-            }
+            // Calculate total and prepare items
+            $total = 0.0;
+            $itemsForStorage = [];
 
-            // Create or get address (required by Order entity)
-            $addresses = $user->getAddresses();
-            if ($addresses->isEmpty()) {
-                $address = new Address();
-                $address->setUser($user);
-                $address->setFullName($data['customer_name'] ?? ($user->getFirstName() . ' ' . $user->getLastName()));
-                $address->setStreetAddress($data['delivery_address'] ?? 'Store Pickup');
-                $address->setCity('Manila');
-                $address->setProvince('Metro Manila');
-                $address->setPostalCode('1000');
-                $address->setCountry('Philippines');
-                $address->setPhone($data['customer_phone'] ?? $user->getPhone() ?? '0000000000');
-                $em->persist($address);
-                $em->flush();
-            } else {
-                $address = $addresses->first();
-            }
-
-            // Create order
-            $order = new Order();
-            $order->setUser($user);
-            $order->setStatus(Order::STATUS_AWAITING_PAYMENT);
-            $order->setShippingAddress($address);
-            $order->setBillingAddress($address);
-            
-            // Add order notes
-            $notes = sprintf(
-                "Mobile App Order\nName: %s\nPhone: %s\nEmail: %s\nFulfillment: %s\nPayment: %s",
-                $data['customer_name'] ?? 'N/A',
-                $data['customer_phone'] ?? 'N/A',
-                $data['customer_email'],
-                $data['fulfillment_type'] ?? 'pickup',
-                $data['payment_method'] ?? 'cash'
-            );
-            if (isset($data['delivery_address']) && $data['delivery_address']) {
-                $notes .= "\nDelivery: " . $data['delivery_address'];
-            }
-            $order->setNotes($notes);
-
-            $subtotal = 0.0;
-            $itemCount = 0;
-
-            // Add items
             foreach ($data['items'] as $itemData) {
                 if (!isset($itemData['variant_id'], $itemData['quantity'])) {
                     continue;
@@ -166,67 +95,52 @@ class SimpleOrderController extends AbstractController
 
                 $variant = $variantRepository->find($itemData['variant_id']);
                 if (!$variant) {
-                    return $this->json([
-                        'error' => sprintf('Product variant %d not found', $itemData['variant_id'])
-                    ], Response::HTTP_BAD_REQUEST);
+                    continue;
                 }
 
                 $quantity = (int) $itemData['quantity'];
-
-                // Create order item
-                $orderItem = new OrderItem();
-                $orderItem->setOrder($order);
-                $orderItem->setVariant($variant);
-                $orderItem->setQuantity($quantity);
-                
                 $unitPrice = (float) $variant->getFinalPrice();
-                $itemSubtotal = $unitPrice * $quantity;
-                
-                $orderItem->setUnitPrice(number_format($unitPrice, 2, '.', ''));
-                $orderItem->setSubtotal(number_format($itemSubtotal, 2, '.', ''));
+                $subtotal = $unitPrice * $quantity;
+                $total += $subtotal;
 
-                $order->addItem($orderItem);
-                $em->persist($orderItem);
-
-                $subtotal += $itemSubtotal;
-                $itemCount++;
+                $itemsForStorage[] = [
+                    'variant_id' => $variant->getId(),
+                    'product_name' => $variant->getProduct()->getName(),
+                    'variant_name' => $variant->getName(),
+                    'quantity' => $quantity,
+                    'unit_price' => number_format($unitPrice, 2, '.', ''),
+                    'subtotal' => number_format($subtotal, 2, '.', ''),
+                ];
             }
 
-            if ($itemCount === 0) {
-                return $this->json(['error' => 'No valid items in order'], Response::HTTP_BAD_REQUEST);
-            }
+            // Create mobile order
+            $mobileOrder = new MobileOrder();
+            $mobileOrder->setCustomerEmail($data['customer_email']);
+            $mobileOrder->setCustomerName($data['customer_name'] ?? null);
+            $mobileOrder->setCustomerPhone($data['customer_phone'] ?? null);
+            $mobileOrder->setFulfillmentType($data['fulfillment_type'] ?? 'pickup');
+            $mobileOrder->setPaymentMethod($data['payment_method'] ?? 'cash');
+            $mobileOrder->setDeliveryAddress($data['delivery_address'] ?? null);
+            $mobileOrder->setTotal(number_format($total, 2, '.', ''));
+            $mobileOrder->setItemsJson(json_encode($itemsForStorage));
+            $mobileOrder->setStatus('pending');
 
-            // Set order totals
-            $order->setSubtotal(number_format($subtotal, 2, '.', ''));
-            $order->setShippingCost('0.00');
-            $order->setDiscount('0.00');
-            $order->setTax('0.00');
-            $order->setTotal(number_format($subtotal, 2, '.', ''));
-
-            $em->persist($order);
+            $em->persist($mobileOrder);
             $em->flush();
 
-            // Return order details
             return $this->json([
                 'message' => 'Order created successfully',
                 'order' => [
-                    'id' => $order->getId(),
-                    'order_number' => $order->getOrderNumber(),
-                    'status' => $order->getStatus(),
-                    'subtotal' => $order->getSubtotal(),
-                    'shipping_cost' => $order->getShippingCost(),
-                    'discount' => $order->getDiscount(),
-                    'tax' => $order->getTax(),
-                    'total' => $order->getTotal(),
-                    'items_count' => $itemCount,
-                    'created_at' => $order->getCreatedAt()->format('Y-m-d H:i:s')
+                    'id' => $mobileOrder->getId(),
+                    'order_number' => 'MOB-' . str_pad($mobileOrder->getId(), 6, '0', STR_PAD_LEFT),
+                    'status' => $mobileOrder->getStatus(),
+                    'total' => $mobileOrder->getTotal(),
+                    'items_count' => count($itemsForStorage),
+                    'created_at' => $mobileOrder->getCreatedAt()->format('Y-m-d H:i:s')
                 ]
             ], Response::HTTP_CREATED);
 
         } catch (\Exception $e) {
-            error_log('Order creation error: ' . $e->getMessage());
-            error_log('Stack trace: ' . $e->getTraceAsString());
-            
             return $this->json([
                 'error' => 'Order creation failed: ' . $e->getMessage()
             ], Response::HTTP_INTERNAL_SERVER_ERROR);
