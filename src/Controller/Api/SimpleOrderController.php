@@ -118,12 +118,12 @@ class SimpleOrderController extends AbstractController
                     continue;
                 }
 
-                // Prefer the price sent from the mobile cart (what the user saw).
-                // Fall back to variant->getPrice() only when not provided.
-                $cartPrice = isset($itemData['unit_price']) && $itemData['unit_price'] !== null && $itemData['unit_price'] !== ''
+                // Use the price the mobile cart sent (what the customer actually saw).
+                // Only fall back to variant->getPrice() when not provided.
+                $sentPrice = isset($itemData['unit_price']) && $itemData['unit_price'] !== null && (string)$itemData['unit_price'] !== ''
                     ? (float) $itemData['unit_price']
                     : null;
-                $unitPrice = $cartPrice ?? (float) $variant->getPrice();
+                $unitPrice = $sentPrice ?? (float) $variant->getPrice();
                 $subtotal  = $unitPrice * $quantity;
                 $total    += $subtotal;
 
