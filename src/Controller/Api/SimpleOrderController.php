@@ -2,8 +2,10 @@
 
 namespace App\Controller\Api;
 
+use App\Entity\Address;
 use App\Entity\Order;
 use App\Entity\OrderItem;
+use App\Repository\AddressRepository;
 use App\Repository\ProductVariantRepository;
 use App\Repository\UserRepository;
 use Doctrine\ORM\EntityManagerInterface;
@@ -50,7 +52,7 @@ class SimpleOrderController extends AbstractController
             // Create or get dummy address for mobile pickup orders
             $addresses = $user->getAddresses();
             if ($addresses->isEmpty()) {
-                $address = new \App\Entity\Address();
+                $address = new Address();
                 $address->setUser($user);
                 $address->setFullName($data['customer_name'] ?? 'Mobile Customer');
                 $address->setStreetAddress('Store Pickup');
