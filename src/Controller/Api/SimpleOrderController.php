@@ -105,8 +105,8 @@ class SimpleOrderController extends AbstractController
                 $orderItem->setOrder($order);
                 $orderItem->setVariant($variant);
                 $orderItem->setQuantity($quantity);
-                $orderItem->setUnitPrice($variant->getFinalPrice());
-                $orderItem->setSubtotal($variant->getFinalPrice() * $quantity);
+                $orderItem->setUnitPrice((string)$variant->getFinalPrice());
+                $orderItem->setSubtotal((string)($variant->getFinalPrice() * $quantity));
 
                 $order->addItem($orderItem);
                 $em->persist($orderItem);
