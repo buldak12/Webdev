@@ -321,4 +321,18 @@ class OrderController extends AbstractController
 
         return $this->redirectToRoute('admin_mobile_orders');
     }
+
+    #[Route('/admin/mobile-orders/{id}/delete', name: 'admin_mobile_orders_delete', methods: ['POST'])]
+    public function deleteMobileOrder(int $id, EntityManagerInterface $em): Response
+    {
+        try {
+            $conn = $em->getConnection();
+            $conn->delete('mobile_orders', ['id' => $id]);
+            $this->addFlash('success', 'Order deleted.');
+        } catch (\Exception $e) {
+            $this->addFlash('error', 'Failed to delete: ' . $e->getMessage());
+        }
+
+        return $this->redirectToRoute('admin_mobile_orders');
+    }
 }

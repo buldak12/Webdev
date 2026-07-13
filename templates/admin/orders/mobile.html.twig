@@ -124,6 +124,15 @@
                                                 </form>
                                             </li>
                                         {% endfor %}
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li>
+                                            <form method="post" action="{{ path('admin_mobile_orders_delete', {id: order.id}) }}"
+                                                  onsubmit="return confirm('Delete order {{ order.order_number }}?')">
+                                                <button type="submit" class="dropdown-item text-danger">
+                                                    <i class="bi bi-trash me-1"></i>Delete
+                                                </button>
+                                            </form>
+                                        </li>
                                     </ul>
                                 </div>
                             </td>

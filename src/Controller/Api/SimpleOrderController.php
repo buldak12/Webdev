@@ -83,6 +83,24 @@ class SimpleOrderController extends AbstractController
     }
 
     /**
+     * DELETE /api/test/orders/{id}  — delete a single mobile order
+     */
+    #[Route('/orders/{id}', name: 'api_test_order_delete', methods: ['DELETE'], requirements: ['id' => '\d+'])]
+    public function deleteOrder(int $id, EntityManagerInterface $em): JsonResponse
+    {
+        try {
+            $conn = $em->getConnection();
+            $deleted = $conn->delete('mobile_orders', ['id' => $id]);
+            if ($deleted === 0) {
+                return $this->json(['error' => 'Order not found'], Response::HTTP_NOT_FOUND);
+            }
+            return $this->json(['success' => true, 'message' => "Order #$id deleted"]);
+        } catch (\Exception $e) {
+            return $this->json(['error' => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    /**
      * POST /api/test/order
      */
     #[Route('/order', name: 'api_test_order', methods: ['POST'])]
